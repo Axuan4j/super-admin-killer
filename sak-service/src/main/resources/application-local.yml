@@ -33,3 +33,10 @@ storage:
   root-dir: ./storage
   avatar-dir: avatars
   access-path: /storage/
+
+cache:
+  multilevel:
+    local-expire-after-write: 5m
+    local-maximum-size: 1000
+    redis-time-to-live: 30m
+    redis-key-prefix: "sak:cache:"
