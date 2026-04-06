@@ -21,10 +21,10 @@ public class AdminMenuController {
     @GetMapping
     public Result<PageResponse<MenuAdminResponse>> listMenus(
             Authentication authentication,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String menuType,
-            @RequestParam(defaultValue = "1") long current,
-            @RequestParam(defaultValue = "12") long size
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "menuType", required = false) String menuType,
+            @RequestParam(name = "current", defaultValue = "1") long current,
+            @RequestParam(name = "size", defaultValue = "12") long size
     ) {
         permissionService.requirePermission(authentication, "system:permission:view");
         return Result.success(adminMenuService.listMenus(keyword, menuType, current, size));

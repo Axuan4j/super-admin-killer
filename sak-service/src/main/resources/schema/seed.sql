@@ -9,6 +9,7 @@ DELETE FROM `sys_role_menu`;
 DELETE FROM `sys_user_role`;
 DELETE FROM `sys_site_message`;
 DELETE FROM `sys_oper_log`;
+DELETE FROM `sys_dict_item`;
 DELETE FROM `sys_config`;
 DELETE FROM `sys_menu`;
 DELETE FROM `sys_role`;
@@ -60,6 +61,16 @@ INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
 INSERT INTO `sys_config` (`id`, `config_key`, `config_value`, `config_type`, `remark`) VALUES
 (1, 'site.name', 'SuperKiller Admin', 'string', '站点名称'),
 (2, 'site.notice', '欢迎使用后台管理系统', 'string', '站点公告');
+
+INSERT INTO `sys_dict_item`
+(`id`, `dict_type`, `dict_label`, `dict_value`, `tag_type`, `tag_color`, `order_num`, `status`, `remark`) VALUES
+(1, 'sys_normal_disable', '启用', '0', 'success', 'green', 1, '0', '通用状态'),
+(2, 'sys_normal_disable', '禁用', '1', 'danger', 'red', 2, '0', '通用状态'),
+(3, 'sys_oper_success', '成功', '1', 'success', 'green', 1, '0', '操作日志结果'),
+(4, 'sys_oper_success', '失败', '0', 'danger', 'red', 2, '0', '操作日志结果'),
+(5, 'sys_user_sex', '男', '0', 'arcoblue', 'arcoblue', 1, '0', '用户性别'),
+(6, 'sys_user_sex', '女', '1', 'pinkpurple', 'pinkpurple', 2, '0', '用户性别'),
+(7, 'sys_user_sex', '未知', '2', 'gray', 'gray', 3, '0', '用户性别');
 
 INSERT INTO `sys_site_message` (`id`, `user_id`, `title`, `content`, `sender_name`, `read_status`, `read_time`, `create_time`, `update_time`) VALUES
 (1, 1, '系统升级通知', '后台管理系统将在今晚 23:00 进行例行维护，请提前保存操作内容。', '系统', 0, NULL, NOW(), NOW()),

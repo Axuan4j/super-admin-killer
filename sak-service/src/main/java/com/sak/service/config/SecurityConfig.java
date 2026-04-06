@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/storage/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/system/dicts/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user/refresh").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()

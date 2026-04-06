@@ -23,10 +23,10 @@ public class AdminRoleController {
     @GetMapping
     public Result<PageResponse<RoleOptionResponse>> listRoles(
             Authentication authentication,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "1") long current,
-            @RequestParam(defaultValue = "10") long size
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "current", defaultValue = "1") long current,
+            @RequestParam(name = "size", defaultValue = "10") long size
     ) {
         permissionService.requirePermission(authentication, "system:role:view");
         return Result.success(adminRoleService.listRoles(keyword, status, current, size));

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { login as loginApi, getUserInfo } from '../api/auth'
 import type { LoginRequest, LoginResponse, UserInfoResponse } from '../api/auth'
+import { useDictStore } from './dict'
 
 interface UserInfo {
   id: number
@@ -25,6 +26,8 @@ interface ApiResult<T> {
   data: T
 }
 
+let fetchUserInfoPromise: Promise<UserInfo | null> | null = null
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     accessToken: localStorage.getItem('accessToken'),
@@ -33,7 +36,7 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isLoggedIn: (state) => !!state.accessToken,
+    isLoggedIn: (state) => !!state.accessToken && !!localStorage.getItem('accessToken'),
     isAdmin: (state) => state.userInfo?.roles?.includes('admin') ?? false,
     hasPermission: (state) => (permission: string) => {
       if (state.userInfo?.roles?.includes('admin')) {
@@ -56,7 +59,21 @@ export const useAuthStore = defineStore('auth', {
     storage: localStorage
   },
   actions: {
+    syncSession() {
+      const accessToken = localStorage.getItem('accessToken')
+      const refreshToken = localStorage.getItem('refreshToken')
+
+      this.accessToken = accessToken
+      this.refreshToken = refreshToken
+
+      if (!accessToken) {
+        this.userInfo = null
+        fetchUserInfoPromise = null
+      }
+    },
+
     async login(credentials: LoginRequest) {
+      const dictStore = useDictStore()
       const res = await loginApi(credentials)
       const payload = res.data as ApiResult<LoginResponse>
 
@@ -67,42 +84,53 @@ export const useAuthStore = defineStore('auth', {
       const data = payload.data
       this.accessToken = data.accessToken
       this.refreshToken = data.refreshToken
-      this.userInfo = {
-        id: 0,
-        username: data.username,
-        nickName: data.username,
-        roles: [],
-        authorities: []
-      }
+      this.userInfo = null
+      fetchUserInfoPromise = null
       localStorage.setItem('accessToken', data.accessToken)
       localStorage.setItem('refreshToken', data.refreshToken)
       await this.fetchUserInfo()
+      await dictStore.loadDictionaries(true)
     },
 
     async fetchUserInfo() {
-      if (!this.accessToken) return
-      try {
-        const data: UserInfoResponse = await getUserInfo()
-        this.userInfo = {
-          id: data.id,
-          username: data.username || '',
-          nickName: data.nickName || data.username || '',
-          email: data.email,
-          phone: data.phone,
-          avatar: data.avatar,
-          roles: data.roles || [],
-          authorities: data.authorities || []
-        }
-      } catch (error) {
-        this.logout()
-        throw error
+      if (!this.accessToken) {
+        return null
       }
+
+      if (this.userInfo) {
+        return this.userInfo
+      }
+
+      if (fetchUserInfoPromise) {
+        return fetchUserInfoPromise
+      }
+
+      fetchUserInfoPromise = getUserInfo()
+        .then((data: UserInfoResponse) => {
+          this.userInfo = {
+            id: data.id,
+            username: data.username || '',
+            nickName: data.nickName || data.username || '',
+            email: data.email,
+            phone: data.phone,
+            avatar: data.avatar,
+            roles: data.roles || [],
+            authorities: data.authorities || []
+          }
+          return this.userInfo
+        })
+        .finally(() => {
+          fetchUserInfoPromise = null
+        })
+
+      return fetchUserInfoPromise
     },
 
     logout() {
       this.accessToken = null
       this.refreshToken = null
       this.userInfo = null
+      fetchUserInfoPromise = null
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
     }

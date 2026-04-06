@@ -56,10 +56,13 @@
               :accordion="false"
               :style="{ width: '100%' }"
               breakpoint="xl"
-              @menu-item-click="handleMenuClick"
           >
             <template v-for="menu in menuStore.menus" :key="menu.path">
-              <a-menu-item v-if="!menu.children || menu.children.length === 0" :key="menu.path">
+              <a-menu-item
+                v-if="!menu.children || menu.children.length === 0"
+                :key="menu.path"
+                @click="handleMenuClick(menu.path)"
+              >
                 <template #icon>
                   <font-awesome-icon v-if="menu.meta?.icon" :icon="[menu.meta.icon.prefix, menu.meta.icon.iconName]"/>
                   <font-awesome-icon v-else icon="fa-solid fa-gauge"/>
@@ -73,7 +76,11 @@
                 </template>
                 <template #title>{{ menu.name }}</template>
                 <template v-for="child in menu.children" :key="child.path">
-                  <a-menu-item v-if="!child.children || child.children.length === 0" :key="child.path">
+                  <a-menu-item
+                    v-if="!child.children || child.children.length === 0"
+                    :key="child.path"
+                    @click="handleMenuClick(child.path)"
+                  >
                     {{ child.name }}
                   </a-menu-item>
                 </template>
@@ -440,8 +447,40 @@ watch(() => authStore.accessToken, async (token) => {
   connectSiteMessageSocket()
 }, { immediate: true })
 
-const handleMenuClick = (key: string) => {
-  router.push(key)
+const handleMenuClick = async (target: string) => {
+  console.debug('[menu] click raw target:', target)
+
+  if (!target) {
+    console.warn('[menu] ignored empty target')
+    return
+  }
+
+  const normalizedTarget = target.startsWith('/') ? target : `/${target}`
+  console.debug('[menu] normalized target:', normalizedTarget)
+  console.debug('[menu] current route before push:', route.path)
+  console.debug(
+    '[menu] matched routes:',
+    router.getRoutes()
+      .filter(item => item.path === normalizedTarget || item.name === normalizedTarget)
+      .map(item => ({
+        name: item.name,
+        path: item.path,
+        redirect: item.redirect
+      }))
+  )
+
+  if (route.path === normalizedTarget) {
+    console.debug('[menu] skip push because already on target route')
+    return
+  }
+
+  try {
+    await router.push(normalizedTarget)
+    console.debug('[menu] push success, current route after push:', router.currentRoute.value.path)
+  } catch (error) {
+    console.error('[menu] push failed:', error)
+    throw error
+  }
 }
 
 const handleTabClick = (path: string) => {

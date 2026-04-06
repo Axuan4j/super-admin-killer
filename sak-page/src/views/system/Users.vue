@@ -14,8 +14,7 @@
       <a-space class="toolbar">
         <a-input v-model="keyword" allow-clear placeholder="搜索用户名/昵称/邮箱" style="width: 280px" />
         <a-select v-model="statusFilter" allow-clear placeholder="筛选状态" style="width: 160px">
-          <a-option value="0">启用</a-option>
-          <a-option value="1">禁用</a-option>
+          <a-option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</a-option>
         </a-select>
       </a-space>
 
@@ -35,8 +34,8 @@
         row-key="id"
       >
         <template #status="{ record }">
-          <a-tag :color="record.status === '0' ? 'green' : 'red'">
-            {{ record.status === '0' ? '启用' : '禁用' }}
+          <a-tag :color="dictStore.getDictTagColor('sys_normal_disable', record.status)">
+            {{ dictStore.getDictLabel('sys_normal_disable', record.status) }}
           </a-tag>
         </template>
         <template #roles="{ record }">
@@ -80,8 +79,7 @@
         </a-form-item>
         <a-form-item field="status" label="状态">
           <a-radio-group v-model="form.status">
-            <a-radio value="0">启用</a-radio>
-            <a-radio value="1">禁用</a-radio>
+            <a-radio v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item field="remark" label="备注">
@@ -93,13 +91,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import { useAuthStore } from '@/stores/auth.ts'
+import { useDictStore } from '@/stores/dict.ts'
 import { createUser, deleteUser, getUserRoleOptions, getUsers, updateUser, type RoleOption, type UserItem } from '@/api/adminUser.ts'
 import { refreshPermissionContext } from '@/utils/permissionSync.ts'
 
 const authStore = useAuthStore()
+const dictStore = useDictStore()
 const loading = ref(false)
 const modalVisible = ref(false)
 const editingId = ref<number | null>(null)
@@ -111,6 +111,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+const statusOptions = computed(() => dictStore.getDictItems('sys_normal_disable'))
 
 const columns = [
   { title: 'ID', dataIndex: 'id', width: 80 },

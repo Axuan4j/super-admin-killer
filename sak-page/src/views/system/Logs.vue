@@ -8,8 +8,7 @@
       <a-space class="toolbar">
         <a-input v-model="keyword" allow-clear placeholder="搜索操作人/描述/类型/URL" style="width: 320px" />
         <a-select v-model="successFilter" allow-clear placeholder="执行结果" style="width: 160px">
-          <a-option :value="1">成功</a-option>
-          <a-option :value="0">失败</a-option>
+          <a-option v-for="item in successOptions" :key="item.value" :value="Number(item.value)">{{ item.label }}</a-option>
         </a-select>
       </a-space>
 
@@ -29,8 +28,8 @@
         @page-size-change="handlePageSizeChange"
       >
         <template #success="{ record }">
-          <a-tag :color="record.success === 1 ? 'green' : 'red'">
-            {{ record.success === 1 ? '成功' : '失败' }}
+          <a-tag :color="dictStore.getDictTagColor('sys_oper_success', record.success)">
+            {{ dictStore.getDictLabel('sys_oper_success', record.success) }}
           </a-tag>
         </template>
         <template #action="{ record }">
@@ -48,7 +47,7 @@
     <a-modal v-model:visible="detailVisible" title="日志详情" :footer="false" width="720px">
       <a-descriptions v-if="currentLog" :column="2" bordered>
         <a-descriptions-item label="操作人">{{ currentLog.operator || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="结果">{{ currentLog.success === 1 ? '成功' : '失败' }}</a-descriptions-item>
+        <a-descriptions-item label="结果">{{ dictStore.getDictLabel('sys_oper_success', currentLog.success) }}</a-descriptions-item>
         <a-descriptions-item label="日志类型">{{ currentLog.logType || '-' }}</a-descriptions-item>
         <a-descriptions-item label="子类型">{{ currentLog.subType || '-' }}</a-descriptions-item>
         <a-descriptions-item label="业务标识">{{ currentLog.bizNo || '-' }}</a-descriptions-item>
@@ -66,9 +65,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { getOperLogs, type OperLogItem } from '@/api/operLog.ts'
+import { useDictStore } from '@/stores/dict.ts'
 
+const dictStore = useDictStore()
 const loading = ref(false)
 const logs = ref<OperLogItem[]>([])
 const keyword = ref('')
@@ -79,6 +80,7 @@ const total = ref(0)
 const detailVisible = ref(false)
 const currentLog = ref<OperLogItem | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+const successOptions = computed(() => dictStore.getDictItems('sys_oper_success'))
 
 const columns = [
   { title: 'ID', dataIndex: 'id', width: 80 },

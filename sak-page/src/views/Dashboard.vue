@@ -13,16 +13,6 @@
           <a-tag bordered>{{ permissionCount }} 项可用权限</a-tag>
         </a-space>
       </div>
-      <a-space wrap>
-        <a-button type="primary" @click="goToPath('/layout/site-messages')">
-          <template #icon><font-awesome-icon icon="fa-solid fa-bell" /></template>
-          查看通知
-        </a-button>
-        <a-button @click="goToPath('/blank/profile')">
-          <template #icon><font-awesome-icon icon="fa-solid fa-id-card" /></template>
-          个人中心
-        </a-button>
-      </a-space>
     </section>
 
     <section class="stats-grid">
@@ -90,8 +80,8 @@
             <div class="list-item-main">
               <div class="list-item-title-row">
                 <span class="list-item-title">{{ log.action || '系统操作' }}</span>
-                <a-tag :color="log.success === 1 ? 'green' : 'red'" size="small">
-                  {{ log.success === 1 ? '成功' : '失败' }}
+                <a-tag :color="dictStore.getDictTagColor('sys_oper_success', log.success)" size="small">
+                  {{ dictStore.getDictLabel('sys_oper_success', log.success) }}
                 </a-tag>
               </div>
               <p class="list-item-desc">{{ log.extra || log.requestUrl || '无补充信息' }}</p>
@@ -131,6 +121,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDictStore } from '@/stores/dict'
 import { useMenuStore } from '@/stores/menu'
 import { getCurrentSiteMessageUnreadCount, getCurrentSiteMessages, type SiteMessage } from '@/api/siteMessage'
 import { getOnlineUsers } from '@/api/adminOnline'
@@ -163,6 +154,7 @@ interface QuickAction {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const dictStore = useDictStore()
 const menuStore = useMenuStore()
 
 const unreadCount = ref(0)

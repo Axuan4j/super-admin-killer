@@ -15,6 +15,8 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import persistedState from 'pinia-plugin-persistedstate'
 import { usePreferenceStore } from '@/stores/preference'
+import { useAuthStore } from '@/stores/auth'
+import { useDictStore } from '@/stores/dict'
 
 // 自动导入所有图标到库
 library.add(fas, fab, far)
@@ -27,6 +29,13 @@ piniaApp.use(persistedState)
 
 app.use(piniaApp)
 usePreferenceStore(piniaApp).applyTheme()
+const authStore = useAuthStore(piniaApp)
+authStore.syncSession()
+if (authStore.isLoggedIn) {
+  useDictStore(piniaApp).loadDictionaries().catch((error) => {
+    console.error('Failed to preload dictionaries:', error)
+  })
+}
 app.use(router)
 app.use(ArcoVue)
 

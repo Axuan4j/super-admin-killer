@@ -23,10 +23,10 @@ public class OperLogController {
     @GetMapping
     public Result<PageResponse<OperLogResponse>> listLogs(
             Authentication authentication,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer success,
-            @RequestParam(defaultValue = "1") long current,
-            @RequestParam(defaultValue = "10") long size
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "success", required = false) Integer success,
+            @RequestParam(name = "current", defaultValue = "1") long current,
+            @RequestParam(name = "size", defaultValue = "10") long size
     ) {
         permissionService.requirePermission(authentication, "system:log:view");
         return Result.success(operLogService.listLogs(keyword, success, current, size));

@@ -24,10 +24,10 @@ public class AdminUserController {
     @GetMapping
     public Result<PageResponse<UserAdminResponse>> listUsers(
             Authentication authentication,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "1") long current,
-            @RequestParam(defaultValue = "10") long size
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "current", defaultValue = "1") long current,
+            @RequestParam(name = "size", defaultValue = "10") long size
     ) {
         permissionService.requirePermission(authentication, "system:user:view");
         return Result.success(adminUserService.listUsers(keyword, status, current, size));

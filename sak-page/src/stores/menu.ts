@@ -17,6 +17,8 @@ interface MenuState {
   loading: boolean
 }
 
+let loadMenusPromise: Promise<void> | null = null
+
 // 处理菜单，添加 meta 信息
 const processMenus = (menus: MenuItem[]): MenuWithMeta[] => {
   return menus.map(menu => {
@@ -43,26 +45,36 @@ export const useMenuStore = defineStore('menu', {
 
   actions: {
     async loadMenus() {
-      if (this.loaded || this.loading) return
-      this.loading = true
-      try {
-        const rawMenus = await getMenus()
-        this.menus = processMenus(rawMenus)
-        this.loaded = true
-      } catch (error) {
-        console.error('Failed to load menus:', error)
-        this.menus = []
-        this.loaded = false
-        throw error
-      } finally {
-        this.loading = false
+      if (this.loaded) return
+      if (loadMenusPromise) {
+        return loadMenusPromise
       }
+
+      this.loading = true
+      loadMenusPromise = (async () => {
+        try {
+          const rawMenus = await getMenus()
+          this.menus = processMenus(rawMenus)
+          this.loaded = true
+        } catch (error) {
+          console.error('Failed to load menus:', error)
+          this.menus = []
+          this.loaded = false
+          throw error
+        } finally {
+          this.loading = false
+          loadMenusPromise = null
+        }
+      })()
+
+      return loadMenusPromise
     },
 
     resetMenus() {
       this.menus = []
       this.loaded = false
       this.loading = false
+      loadMenusPromise = null
     }
   }
 })

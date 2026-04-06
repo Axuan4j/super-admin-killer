@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS `sys_role_menu`;
 DROP TABLE IF EXISTS `sys_user_role`;
 DROP TABLE IF EXISTS `sys_site_message`;
 DROP TABLE IF EXISTS `sys_oper_log`;
+DROP TABLE IF EXISTS `sys_dict_item`;
 DROP TABLE IF EXISTS `sys_config`;
 DROP TABLE IF EXISTS `sys_menu`;
 DROP TABLE IF EXISTS `sys_role`;
@@ -95,6 +96,25 @@ CREATE TABLE `sys_config`
     UNIQUE KEY `uk_config_key` (`config_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='系统参数表';
+
+CREATE TABLE `sys_dict_item`
+(
+    `id`          bigint       NOT NULL AUTO_INCREMENT COMMENT '字典ID',
+    `dict_type`   varchar(100) NOT NULL COMMENT '字典类型',
+    `dict_label`  varchar(100) NOT NULL COMMENT '字典标签',
+    `dict_value`  varchar(100) NOT NULL COMMENT '字典键值',
+    `tag_type`    varchar(30)           DEFAULT NULL COMMENT '标签类型',
+    `tag_color`   varchar(30)           DEFAULT NULL COMMENT '标签颜色',
+    `order_num`   int                   DEFAULT 0 COMMENT '显示顺序',
+    `status`      char(1)      NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
+    `remark`      varchar(500)          DEFAULT NULL COMMENT '备注',
+    `create_time` datetime              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_dict_type` (`dict_type`),
+    KEY `idx_dict_type_status` (`dict_type`, `status`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='系统字典表';
 
 CREATE TABLE `sys_site_message`
 (

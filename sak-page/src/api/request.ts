@@ -3,27 +3,70 @@ import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosRespon
 import { Message } from '@arco-design/web-vue'
 import router from '../router'
 
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+    _retry?: boolean
+    skipAuthRefresh?: boolean
+}
+
 const baseUri: string = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const request: AxiosInstance = axios.create({
     baseURL: baseUri,
     timeout: 10000
 })
 
-// 标记是否正在刷新 token，避免多个请求同时触发刷新
-let isRefreshing = false
-// 存储等待刷新完成的请求队列
-let refreshSubscribers: Array<(token: string) => void> = []
+let refreshPromise: Promise<string | null> | null = null
+let redirectingToLogin = false
+let sessionExpiredMessageShown = false
 
-const subscribeTokenRefresh = (callback: (token: string) => void) => {
-    refreshSubscribers.push(callback)
+type RefreshSubscriber = {
+    resolve: (token: string) => void
+    reject: (error: unknown) => void
+}
+
+let refreshSubscribers: RefreshSubscriber[] = []
+
+const subscribeTokenRefresh = (resolve: (token: string) => void, reject: (error: unknown) => void) => {
+    refreshSubscribers.push({resolve, reject})
 }
 
 const onTokenRefreshed = (token: string) => {
-    refreshSubscribers.forEach(callback => callback(token))
+    refreshSubscribers.forEach(subscriber => subscriber.resolve(token))
     refreshSubscribers = []
 }
 
-// 刷新 access_token
+const onTokenRefreshFailed = (error: unknown) => {
+    refreshSubscribers.forEach(subscriber => subscriber.reject(error))
+    refreshSubscribers = []
+}
+
+const clearAuthStorage = () => {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+}
+
+const redirectToLogin = async (showMessage = false) => {
+    clearAuthStorage()
+
+    const { useAuthStore } = await import('../stores/auth')
+    useAuthStore().logout()
+
+    if (showMessage && !sessionExpiredMessageShown) {
+        Message.error('会话已过期，请重新登录')
+        sessionExpiredMessageShown = true
+    }
+
+    if (redirectingToLogin || router.currentRoute.value.path === '/login') {
+        return
+    }
+
+    redirectingToLogin = true
+    try {
+        await router.push('/login')
+    } finally {
+        redirectingToLogin = false
+    }
+}
+
 const refreshAccessToken = async (): Promise<string | null> => {
     const refreshToken = localStorage.getItem('refreshToken')
     if (!refreshToken) {
@@ -34,12 +77,16 @@ const refreshAccessToken = async (): Promise<string | null> => {
         const res = await axios.post(
             `${baseUri}/user/refresh`,
             {refreshToken},
-            {headers: {'Content-Type': 'application/json'}}
+            {
+                headers: {'Content-Type': 'application/json'},
+                timeout: 10000
+            }
         )
         const {code, data} = res.data
         if (code === 200 && data.accessToken) {
             const newAccessToken = data.accessToken
             localStorage.setItem('accessToken', newAccessToken)
+            sessionExpiredMessageShown = false
             return newAccessToken
         }
         return null
@@ -65,6 +112,7 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
     (response: AxiosResponse) => {
+        sessionExpiredMessageShown = false
         const {code, message, data} = response.data
 
         if (code === 200) {
@@ -75,59 +123,67 @@ request.interceptors.response.use(
         return Promise.reject(response.data)
     },
     async (error: AxiosError<{ code: number; message: string }>) => {
-        const {response, config} = error
+        const {response} = error
+        const config = error.config as RetryableRequestConfig | undefined
 
         if (response && response.status === 401) {
             const refreshToken = localStorage.getItem('refreshToken')
+            const isRefreshRequest = config?.url?.includes('/user/refresh')
 
-            if (!refreshToken) {
-                // 没有 refreshToken，直接跳转登录
-                localStorage.removeItem('accessToken')
-                localStorage.removeItem('refreshToken')
-                await router.push('/login')
+            if (!refreshToken || isRefreshRequest || config?.skipAuthRefresh || config?._retry) {
+                await redirectToLogin(true)
                 return Promise.reject(error)
             }
 
-            if (!isRefreshing) {
-                isRefreshing = true
-
-                try {
-                    const newAccessToken = await refreshAccessToken()
-                    isRefreshing = false
-
-                    if (newAccessToken) {
-                        onTokenRefreshed(newAccessToken)
-
-                        // 重试当前请求
-                        if (config && config.headers) {
-                            config.headers.Authorization = `Bearer ${newAccessToken}`
-                            return request(config)
+            if (!refreshPromise) {
+                refreshPromise = refreshAccessToken()
+                    .then(newAccessToken => {
+                        if (newAccessToken) {
+                            onTokenRefreshed(newAccessToken)
+                            return newAccessToken
                         }
-                        return Promise.reject(error)
-                    } else {
                         throw new Error('refresh failed')
-                    }
-                } catch {
-                    isRefreshing = false
-                    localStorage.removeItem('accessToken')
-                    localStorage.removeItem('refreshToken')
-                    await router.push('/login')
-                    Message.error('会话已过期，请重新登录')
-                    return Promise.reject(error)
+                    })
+                    .catch(async (refreshError) => {
+                        onTokenRefreshFailed(refreshError)
+                        await redirectToLogin(true)
+                        return null
+                    })
+                    .finally(() => {
+                        refreshPromise = null
+                    })
+            }
+
+            try {
+                const newAccessToken = await refreshPromise
+
+                if (newAccessToken && config && config.headers) {
+                    config._retry = true
+                    config.headers.Authorization = `Bearer ${newAccessToken}`
+                    return request(config)
                 }
-            } else {
-                // 正在刷新，将请求加入队列
-                return new Promise(resolve => {
-                    subscribeTokenRefresh((token: string) => {
+
+                return Promise.reject(error)
+            } catch (refreshError) {
+                return Promise.reject(refreshError)
+            }
+        }
+
+        if (refreshPromise && config && !config.skipAuthRefresh && !config._retry) {
+            return new Promise((resolve, reject) => {
+                subscribeTokenRefresh(
+                    (token: string) => {
                         if (config && config.headers) {
+                            config._retry = true
                             config.headers.Authorization = `Bearer ${token}`
                             resolve(request(config))
                             return
                         }
-                        resolve(Promise.reject(error))
-                    })
-                })
-            }
+                        reject(error)
+                    },
+                    reject
+                )
+            })
         }
 
         if (response) {

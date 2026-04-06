@@ -19,6 +19,14 @@ const staticRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/layout/DefaultLayout.vue'),
         children: [
             {
+                path: 'dashboard',
+                name: 'Dashboard',
+                component: () => import('@/views/Dashboard.vue'),
+                meta: {
+                    title: '首页'
+                }
+            },
+            {
                 path: 'site-messages',
                 name: 'SiteMessages',
                 component: () => import('@/views/SiteMessages.vue'),
@@ -122,14 +130,26 @@ export const resetDynamicRoutes = () => {
 router.beforeEach(async (to) => {
     const authStore = useAuthStore()
     const menuStore = useMenuStore()
+    authStore.syncSession()
+
+    console.debug('[router.beforeEach] from -> to', {
+        from: router.currentRoute.value.fullPath,
+        to: to.fullPath,
+        isLoggedIn: authStore.isLoggedIn,
+        hasUserInfo: !!authStore.userInfo,
+        menusLoaded: menuStore.loaded,
+        routesGenerated: isRoutesGenerated
+    })
 
     // 未登录，跳转登录
     if (to.meta.requiresAuth !== false && !authStore.isLoggedIn) {
+        console.debug('[router.beforeEach] redirect to /login because not logged in')
         return '/login'
     }
 
     // 已登录访问登录页，先校验当前 token 是否仍然有效
     if (to.path === '/login' && authStore.isLoggedIn) {
+        console.debug('[router.beforeEach] already logged in, validating session before staying on /login')
         try {
             await authStore.fetchUserInfo()
         } catch {
@@ -148,31 +168,66 @@ router.beforeEach(async (to) => {
 
     // 根路径跳转
     if (to.path === '/') {
+        console.debug('[router.beforeEach] redirect root to /layout/dashboard')
         return '/layout/dashboard'
     }
 
-    // 加载动态菜单并生成路由
-    if (authStore.isLoggedIn && !isRoutesGenerated) {
+    if (authStore.isLoggedIn && !authStore.userInfo) {
+        console.debug('[router.beforeEach] fetching user info before route permission check')
         try {
-            await menuStore.loadMenus()
-            if (menuStore.menus.length > 0) {
-                generateRoutes(menuStore.menus)
-                // 路由生成后，重新导航到当前路径
-                return router.replace(to.fullPath)
-            }
+            await authStore.fetchUserInfo()
         } catch {
             menuStore.resetMenus()
             resetDynamicRoutes()
             authStore.logout()
             return '/login'
         }
+    }
 
-        return '/login'
+    // 加载动态菜单并生成路由
+    if (authStore.isLoggedIn && !isRoutesGenerated) {
+        console.debug('[router.beforeEach] generating dynamic routes')
+        try {
+            await menuStore.loadMenus()
+            console.debug('[router.beforeEach] menus loaded:', menuStore.menus.map(menu => ({
+                name: menu.name,
+                path: menu.path,
+                children: menu.children?.map(child => ({name: child.name, path: child.path}))
+            })))
+            if (menuStore.menus.length > 0) {
+                generateRoutes(menuStore.menus)
+                console.debug('[router.beforeEach] route generation finished, known routes:', router.getRoutes().map(route => ({
+                    name: route.name,
+                    path: route.path
+                })))
+                if (to.name && router.hasRoute(String(to.name))) {
+                    console.debug('[router.beforeEach] target route already available by name, continue')
+                    return true
+                }
+                console.debug('[router.beforeEach] retry navigation to current target:', to.fullPath)
+                return to.fullPath
+            }
+
+            console.debug('[router.beforeEach] menu list empty, continue without redirect')
+            return true
+        } catch {
+            console.error('[router.beforeEach] dynamic route generation failed')
+            menuStore.resetMenus()
+            resetDynamicRoutes()
+            authStore.logout()
+            return '/login'
+        }
     }
 
     if (typeof to.meta.permission === 'string' && to.meta.permission && !authStore.hasPermission(to.meta.permission as string)) {
+        console.warn('[router.beforeEach] permission denied, redirect to /layout/dashboard', {
+            path: to.fullPath,
+            permission: to.meta.permission
+        })
         return '/layout/dashboard'
     }
+
+    console.debug('[router.beforeEach] allow navigation:', to.fullPath)
 })
 
 export default router
