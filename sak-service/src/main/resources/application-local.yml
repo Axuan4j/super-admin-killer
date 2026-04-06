@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER.PORT}
+  port: ${SERVER.PORT:8080}
 
 spring:
   application:
@@ -40,3 +40,11 @@ cache:
     local-maximum-size: 1000
     redis-time-to-live: 30m
     redis-key-prefix: "sak:cache:"
+
+logging:
+  level:
+    root: info
+    com:
+      sak:
+        service:
+          mapper: debug
