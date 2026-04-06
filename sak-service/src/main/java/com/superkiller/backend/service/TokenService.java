@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -42,11 +43,11 @@ public class TokenService {
     private final SysUserMapper sysUserMapper;
     private final ObjectMapper objectMapper;
 
-    @Value("${jwt.access-token-expiration:600000}")
-    private Long accessTokenExpiration;
+    @Value("${jwt.access-token-expiration:10m}")
+    private Duration accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration:604800000}")
-    private Long refreshTokenExpiration;
+    @Value("${jwt.refresh-token-expiration:7d}")
+    private Duration refreshTokenExpiration;
 
     public TokenService(
             RedisTemplate<String, Object> redisTemplate,
@@ -69,14 +70,14 @@ public class TokenService {
                 .last("limit 1"));
         String currentTime = now();
 
-        redisTemplate.opsForValue().set(accessKey(accessToken), sessionId, accessTokenExpiration, TimeUnit.MILLISECONDS);
-        redisTemplate.opsForValue().set(refreshKey(refreshToken), sessionId, refreshTokenExpiration, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(accessKey(accessToken), sessionId, accessTokenExpiration);
+        redisTemplate.opsForValue().set(refreshKey(refreshToken), sessionId, refreshTokenExpiration);
 
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("username", userDetails.getUsername());
         userInfo.put("authorities", userDetails.getAuthorities());
         redisTemplate.opsForHash().putAll(USER_PREFIX + userDetails.getUsername(), userInfo);
-        redisTemplate.expire(USER_PREFIX + userDetails.getUsername(), refreshTokenExpiration, TimeUnit.MILLISECONDS);
+        redisTemplate.expire(USER_PREFIX + userDetails.getUsername(), refreshTokenExpiration);
 
         Map<String, String> sessionInfo = new HashMap<>();
         sessionInfo.put("sessionId", sessionId);
@@ -90,12 +91,12 @@ public class TokenService {
         sessionInfo.put("accessToken", accessToken);
         sessionInfo.put("refreshToken", refreshToken);
         redisTemplate.opsForHash().putAll(sessionKey(sessionId), sessionInfo);
-        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration, TimeUnit.MILLISECONDS);
+        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration);
         redisTemplate.opsForSet().add(ONLINE_SESSION_SET_KEY, sessionId);
         if (user != null && user.getId() != null) {
             String userSessionsKey = USER_SESSIONS_PREFIX + user.getId();
             redisTemplate.opsForSet().add(userSessionsKey, sessionId);
-            redisTemplate.expire(userSessionsKey, refreshTokenExpiration, TimeUnit.MILLISECONDS);
+            redisTemplate.expire(userSessionsKey, refreshTokenExpiration);
         }
 
         Map<String, String> tokens = new HashMap<>();
@@ -170,12 +171,12 @@ public class TokenService {
 
     public boolean isAccessTokenValid(String token) {
         String sessionId = getSessionIdByAccessToken(token);
-        return StringUtils.hasText(sessionId) && Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey(sessionId)));
+        return StringUtils.hasText(sessionId) && redisTemplate.hasKey(sessionKey(sessionId));
     }
 
     public boolean isRefreshTokenValid(String token) {
         String sessionId = getSessionIdByRefreshToken(token);
-        return StringUtils.hasText(sessionId) && Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey(sessionId)));
+        return StringUtils.hasText(sessionId) && redisTemplate.hasKey(sessionKey(sessionId));
     }
 
     public String refreshAccessToken(String refreshToken) {
@@ -197,10 +198,10 @@ public class TokenService {
         if (StringUtils.hasText(oldAccessToken)) {
             redisTemplate.delete(accessKey(oldAccessToken));
         }
-        redisTemplate.opsForValue().set(accessKey(newAccessToken), sessionId, accessTokenExpiration, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(accessKey(newAccessToken), sessionId, accessTokenExpiration);
         redisTemplate.opsForHash().put(sessionKey(sessionId), "accessToken", newAccessToken);
         redisTemplate.opsForHash().put(sessionKey(sessionId), "lastActiveTime", now());
-        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration, TimeUnit.MILLISECONDS);
+        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration.toSeconds(), TimeUnit.SECONDS);
 
         return newAccessToken;
     }
@@ -227,7 +228,7 @@ public class TokenService {
     }
 
     public boolean hasSession(String sessionId) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey(sessionId)));
+        return redisTemplate.hasKey(sessionKey(sessionId));
     }
 
     public List<OnlineUserSessionResponse> listOnlineSessions() {
@@ -266,7 +267,7 @@ public class TokenService {
     }
 
     private void touchSession(String sessionId, HttpServletRequest request) {
-        if (!Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey(sessionId)))) {
+        if (!redisTemplate.hasKey(sessionKey(sessionId))) {
             return;
         }
         redisTemplate.opsForHash().put(sessionKey(sessionId), "lastActiveTime", now());
@@ -274,7 +275,7 @@ public class TokenService {
             redisTemplate.opsForHash().put(sessionKey(sessionId), "ip", resolveClientIp(request));
             redisTemplate.opsForHash().put(sessionKey(sessionId), "userAgent", resolveUserAgent(request));
         }
-        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration, TimeUnit.MILLISECONDS);
+        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration);
     }
 
     private Map<String, String> getSessionInfo(String sessionId) {

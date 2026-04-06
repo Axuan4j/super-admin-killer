@@ -25,9 +25,9 @@ mybatis-plus:
       id-type: auto
 
 jwt:
-  secret: superkiller-secret-key-that-should-be-at-least-256-bits-long
-  access-token-expiration: 600000    # 10分钟
-  refresh-token-expiration: 604800000 # 7天
+  secret: ${JWT.SECRET:3MeKau+j794vsIX2jLgLaWYLAzd39ugtcNfNR5ScJX0=}
+  access-token-expiration: ${JWT.AT.EXPIRE:10m}    # 10分钟
+  refresh-token-expiration: ${JWT.RT.EXPIRE:7d} # 7天
 
 storage:
   root-dir: ./storage

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,11 +21,11 @@ public class JwtUtils {
     @Value("${jwt.secret:superkiller-secret-key-that-should-be-at-least-256-bits-long}")
     private String secret;
 
-    @Value("${jwt.access-token-expiration:600000}")
-    private Long accessTokenExpiration;
+    @Value("${jwt.access-token-expiration:10m}")
+    private Duration accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration:604800000}")
-    private Long refreshTokenExpiration;
+    @Value("${jwt.refresh-token-expiration:7d}")
+    private Duration refreshTokenExpiration;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
@@ -42,12 +43,12 @@ public class JwtUtils {
         return createToken(claims, username, refreshTokenExpiration);
     }
 
-    private String createToken(Map<String, Object> claims, String subject, Long expiration) {
+    private String createToken(Map<String, Object> claims, String subject, Duration expiration) {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + expiration.toMillis()))
                 .signWith(getSigningKey())
                 .compact();
     }
