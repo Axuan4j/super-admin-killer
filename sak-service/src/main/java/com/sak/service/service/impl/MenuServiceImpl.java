@@ -12,6 +12,7 @@ import com.sak.service.mapper.SysUserMapper;
 import com.sak.service.mapper.SysUserRoleMapper;
 import com.sak.service.service.MenuService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class MenuServiceImpl implements MenuService {
     private final SysMenuMapper sysMenuMapper;
 
     @Override
+    @Cacheable(cacheNames = "current-user-menus", key = "#p0")
     public List<MenuResponse> getCurrentUserMenus(String username) {
         SysUser user = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getUsername, username)

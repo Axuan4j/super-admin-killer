@@ -5,13 +5,15 @@
         <a-space>
           <a-button @click="loadData" :loading="loading">刷新</a-button>
           <a-button v-if="authStore.hasPermission('system:permission:add')" type="primary" @click="openCreate">
-            <template #icon><font-awesome-icon icon="fa-solid fa-plus" /></template>
+            <template #icon>
+              <font-awesome-icon icon="fa-solid fa-plus"/>
+            </template>
             新增菜单/权限
           </a-button>
         </a-space>
       </template>
       <a-space class="toolbar">
-        <a-input v-model="keyword" allow-clear placeholder="搜索名称/路由/权限标识" style="width: 320px" />
+        <a-input v-model="keyword" allow-clear placeholder="搜索名称/路由/权限标识" style="width: 320px"/>
         <a-select v-model="typeFilter" allow-clear placeholder="筛选类型" style="width: 160px">
           <a-option value="M">目录</a-option>
           <a-option value="C">菜单</a-option>
@@ -19,14 +21,17 @@
         </a-select>
       </a-space>
       <a-table
-        :columns="columns"
-        :data="treeMenus"
-        :loading="loading"
-        :pagination="false"
-        row-key="id"
+          :columns="columns"
+          :data="treeMenus"
+          :loading="loading"
+          :pagination="false"
+          row-key="id"
       >
         <template #menuType="{ record }">
-          <a-tag :color="typeColorMap[record.menuType] || 'gray'">{{ typeLabelMap[record.menuType] || record.menuType }}</a-tag>
+          <a-tag :color="typeColorMap[record.menuType] || 'gray'">{{
+              typeLabelMap[record.menuType] || record.menuType
+            }}
+          </a-tag>
         </template>
         <template #visible="{ record }">
           <a-tag :color="record.visible === '0' ? 'green' : 'red'">
@@ -35,8 +40,11 @@
         </template>
         <template #operations="{ record }">
           <a-space v-if="authStore.hasAnyPermission(['system:permission:edit', 'system:permission:remove'])">
-            <a-button v-if="authStore.hasPermission('system:permission:edit')" type="text" size="small" @click="openEdit(record)">编辑</a-button>
-            <a-popconfirm v-if="authStore.hasPermission('system:permission:remove')" content="确认删除该菜单/权限？" @ok="handleDelete(record.id)">
+            <a-button v-if="authStore.hasPermission('system:permission:edit')" type="text" size="small"
+                      @click="openEdit(record)">编辑
+            </a-button>
+            <a-popconfirm v-if="authStore.hasPermission('system:permission:remove')" content="确认删除该菜单/权限？"
+                          @ok="handleDelete(record.id)">
               <a-button type="text" size="small" status="danger">删除</a-button>
             </a-popconfirm>
           </a-space>
@@ -44,10 +52,11 @@
       </a-table>
     </a-card>
 
-    <a-modal v-model:visible="modalVisible" :title="editingId ? '编辑菜单/权限' : '新增菜单/权限'" @ok="handleSubmit" @cancel="resetForm">
+    <a-modal v-model:visible="modalVisible" :title="editingId ? '编辑菜单/权限' : '新增菜单/权限'" @ok="handleSubmit"
+             @cancel="resetForm">
       <a-form :model="form" layout="vertical">
         <a-form-item field="menuName" label="名称">
-          <a-input v-model="form.menuName" />
+          <a-input v-model="form.menuName"/>
         </a-form-item>
         <a-form-item field="menuType" label="类型">
           <a-select v-model="form.menuType">
@@ -63,19 +72,19 @@
           </a-select>
         </a-form-item>
         <a-form-item field="path" label="路由路径">
-          <a-input v-model="form.path" />
+          <a-input v-model="form.path"/>
         </a-form-item>
         <a-form-item field="component" label="组件路径">
-          <a-input v-model="form.component" />
+          <a-input v-model="form.component"/>
         </a-form-item>
         <a-form-item field="perms" label="权限标识">
-          <a-input v-model="form.perms" />
+          <a-input v-model="form.perms"/>
         </a-form-item>
         <a-form-item field="icon" label="图标">
-          <a-input v-model="form.icon" />
+          <a-input v-model="form.icon"/>
         </a-form-item>
         <a-form-item field="orderNum" label="排序">
-          <a-input-number v-model="form.orderNum" :min="0" />
+          <a-input-number v-model="form.orderNum" :min="0"/>
         </a-form-item>
         <a-form-item field="visible" label="显示状态">
           <a-radio-group v-model="form.visible">
@@ -84,7 +93,7 @@
           </a-radio-group>
         </a-form-item>
         <a-form-item field="remark" label="备注">
-          <a-textarea v-model="form.remark" />
+          <a-textarea v-model="form.remark"/>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -92,10 +101,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { Message } from '@arco-design/web-vue'
-import { useAuthStore } from '@/stores/auth.ts'
-import { createMenu, deleteMenu, getManageMenus, updateMenu, type MenuManageItem } from '@/api/adminMenu.ts'
+import {computed, onMounted, onUnmounted, reactive, ref, watch} from 'vue'
+import {Message} from '@arco-design/web-vue'
+import {useAuthStore} from '@/stores/auth.ts'
+import {createMenu, deleteMenu, getManageMenus, updateMenu, type MenuManageItem} from '@/api/adminMenu.ts'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -111,17 +120,17 @@ interface TreeMenuItem extends MenuManageItem {
 }
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', width: 120 },
-  { title: '名称', dataIndex: 'menuName' },
-  { title: '类型', slotName: 'menuType', width: 120 },
-  { title: '路由', dataIndex: 'path', ellipsis: true, tooltip: true },
-  { title: '权限标识', dataIndex: 'perms', ellipsis: true, tooltip: true },
-  { title: '显示', slotName: 'visible', width: 100 },
-  { title: '操作', slotName: 'operations', width: 160 }
+  {title: 'ID', dataIndex: 'id', width: 120},
+  {title: '名称', dataIndex: 'menuName'},
+  {title: '类型', slotName: 'menuType', width: 120},
+  {title: '路由', dataIndex: 'path', ellipsis: true, tooltip: true},
+  {title: '权限标识', dataIndex: 'perms', ellipsis: true, tooltip: true},
+  {title: '显示', slotName: 'visible', width: 100},
+  {title: '操作', slotName: 'operations', width: 160}
 ]
 
-const typeLabelMap: Record<string, string> = { M: '目录', C: '菜单', F: '按钮' }
-const typeColorMap: Record<string, string> = { M: 'arcoblue', C: 'green', F: 'orange' }
+const typeLabelMap: Record<string, string> = {M: '目录', C: '菜单', F: '按钮'}
+const typeColorMap: Record<string, string> = {M: 'arcoblue', C: 'green', F: 'orange'}
 
 const createDefaultForm = () => ({
   menuName: '',
@@ -147,16 +156,16 @@ const buildTree = (items: MenuManageItem[]) => {
   const roots: TreeMenuItem[] = []
 
   items
-    .slice()
-    .sort((a, b) => {
-      const orderCompare = (a.orderNum ?? 0) - (b.orderNum ?? 0)
-      return orderCompare !== 0 ? orderCompare : a.id - b.id
-    })
-    .forEach(item => {
-      nodeMap.set(item.id, {
-        ...item
+      .slice()
+      .sort((a, b) => {
+        const orderCompare = (a.orderNum ?? 0) - (b.orderNum ?? 0)
+        return orderCompare !== 0 ? orderCompare : a.id - b.id
       })
-    })
+      .forEach(item => {
+        nodeMap.set(item.id, {
+          ...item
+        })
+      })
 
   nodeMap.forEach(node => {
     const parentId = node.parentId ?? 0
@@ -181,17 +190,17 @@ const buildTree = (items: MenuManageItem[]) => {
 const filterTree = (nodes: TreeMenuItem[]): TreeMenuItem[] => nodes.reduce<TreeMenuItem[]>((acc, node) => {
   const filteredChildren = filterTree(node.children || [])
   const matchesKeyword = !normalizedKeyword.value || [node.menuName, node.path, node.perms]
-    .filter(Boolean)
-    .some(value => String(value).toLowerCase().includes(normalizedKeyword.value))
+      .filter(Boolean)
+      .some(value => String(value).toLowerCase().includes(normalizedKeyword.value))
   const matchesType = !typeFilter.value || node.menuType === typeFilter.value
 
   if ((matchesKeyword && matchesType) || filteredChildren.length > 0) {
     acc.push(filteredChildren.length > 0
-      ? {
+        ? {
           ...node,
           children: filteredChildren
         }
-      : {
+        : {
           ...node,
           children: undefined
         })
@@ -210,8 +219,8 @@ const resetForm = () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const fullPage = await getManageMenus({ current: 1, size: 500 })
-    allMenus.value = fullPage.records
+    const menus = await getManageMenus({})
+    allMenus.value = menus
   } finally {
     loading.value = false
   }

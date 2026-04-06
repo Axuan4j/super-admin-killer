@@ -135,18 +135,18 @@ const resetForm = () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const [rolePage, menuPage] = await Promise.all([
+    const [rolePage, menus] = await Promise.all([
       getRoles({
         keyword: keyword.value || undefined,
         status: statusFilter.value || undefined,
         current: currentPage.value,
         size: pageSize.value
       }),
-      getManageMenus({ current: 1, size: 500 })
+      getManageMenus({})
     ])
     roles.value = rolePage.records
     total.value = rolePage.total
-    allMenus.value = menuPage.records
+    allMenus.value = menus
   } finally {
     loading.value = false
   }

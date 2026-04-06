@@ -14,10 +14,14 @@ import com.sak.service.mapper.SysRoleMenuMapper;
 import com.sak.service.mapper.SysUserRoleMapper;
 import com.sak.service.service.AdminRoleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,9 +29,13 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AdminRoleServiceImpl implements AdminRoleService {
 
+    private static final String ROLE_MENU_IDS_CACHE = "role-menu-ids";
+    private static final String CURRENT_USER_MENUS_CACHE = "current-user-menus";
+
     private final SysRoleMapper sysRoleMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
     private final SysRoleMenuMapper sysRoleMenuMapper;
+    private final CacheManager cacheManager;
 
     @Override
     public PageResponse<RoleOptionResponse> listRoles(String keyword, String status, long current, long size) {
@@ -52,7 +60,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     }
 
     @Override
-    @LogRecord(success = "新增角色：{{#request.roleName}}", fail = "新增角色失败：{{#request.roleName}}", type = "ROLE", subType = "CREATE", bizNo = "{{#_ret.id}}")
+    @LogRecord(success = "新增角色：{{#p0.roleName}}", fail = "新增角色失败：{{#p0.roleName}}", type = "ROLE", subType = "CREATE", bizNo = "{{#_ret.id}}")
     public RoleOptionResponse createRole(RoleSaveRequest request) {
         validateRoleKeyUnique(request.getRoleKey(), null);
         SysRole role = new SysRole();
@@ -62,7 +70,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     }
 
     @Override
-    @LogRecord(success = "编辑角色：{{#request.roleName}}", fail = "编辑角色失败：{{#request.roleName}}", type = "ROLE", subType = "UPDATE", bizNo = "{{#id}}")
+    @LogRecord(success = "编辑角色：{{#p1.roleName}}", fail = "编辑角色失败：{{#p1.roleName}}", type = "ROLE", subType = "UPDATE", bizNo = "{{#p0}}")
     public RoleOptionResponse updateRole(Long id, RoleSaveRequest request) {
         SysRole role = requireRole(id);
         validateRoleKeyUnique(request.getRoleKey(), id);
@@ -73,7 +81,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
 
     @Override
     @Transactional
-    @LogRecord(success = "删除角色：{{#id}}", fail = "删除角色失败：{{#id}}", type = "ROLE", subType = "DELETE", bizNo = "{{#id}}")
+    @LogRecord(success = "删除角色：{{#p0}}", fail = "删除角色失败：{{#p0}}", type = "ROLE", subType = "DELETE", bizNo = "{{#p0}}")
     public void deleteRole(Long id) {
         long bindCount = sysUserRoleMapper.selectCount(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, id));
         if (bindCount > 0) {
@@ -81,9 +89,12 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         }
         sysRoleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id));
         sysRoleMapper.deleteById(id);
+        evictRoleMenuCache(id);
+        clearCurrentUserMenusCache();
     }
 
     @Override
+    @Cacheable(cacheNames = ROLE_MENU_IDS_CACHE, key = "#p0")
     public List<Long> getRoleMenuIds(Long id) {
         requireRole(id);
         return sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id))
@@ -94,19 +105,25 @@ public class AdminRoleServiceImpl implements AdminRoleService {
 
     @Override
     @Transactional
-    @LogRecord(success = "更新角色权限：{{#id}}", fail = "更新角色权限失败：{{#id}}", type = "ROLE", subType = "GRANT", bizNo = "{{#id}}")
+    @LogRecord(success = "更新角色权限：{{#p0}}", fail = "更新角色权限失败：{{#p0}}", type = "ROLE", subType = "GRANT", bizNo = "{{#p0}}")
     public void updateRoleMenus(Long id, List<Long> menuIds) {
         requireRole(id);
+        List<Long> distinctMenuIds = normalizeMenuIds(menuIds);
+
         sysRoleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id));
-        if (menuIds == null || menuIds.isEmpty()) {
+        if (distinctMenuIds.isEmpty()) {
+            putRoleMenuCache(id, distinctMenuIds);
+            clearCurrentUserMenusCache();
             return;
         }
-        menuIds.stream().distinct().forEach(menuId -> {
+        distinctMenuIds.forEach(menuId -> {
             SysRoleMenu relation = new SysRoleMenu();
             relation.setRoleId(id);
             relation.setMenuId(menuId);
             sysRoleMenuMapper.insert(relation);
         });
+        putRoleMenuCache(id, distinctMenuIds);
+        clearCurrentUserMenusCache();
     }
 
     private void applyRequest(SysRole role, RoleSaveRequest request) {
@@ -129,6 +146,34 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         SysRole exists = sysRoleMapper.selectOne(new LambdaQueryWrapper<SysRole>().eq(SysRole::getRoleKey, roleKey).last("limit 1"));
         if (exists != null && !Objects.equals(exists.getId(), excludeId)) {
             throw new IllegalArgumentException("角色标识已存在");
+        }
+    }
+
+    private List<Long> normalizeMenuIds(List<Long> menuIds) {
+        if (menuIds == null || menuIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return menuIds.stream().distinct().toList();
+    }
+
+    private void putRoleMenuCache(Long roleId, List<Long> menuIds) {
+        Cache cache = cacheManager.getCache(ROLE_MENU_IDS_CACHE);
+        if (cache != null) {
+            cache.put(roleId, menuIds);
+        }
+    }
+
+    private void evictRoleMenuCache(Long roleId) {
+        Cache cache = cacheManager.getCache(ROLE_MENU_IDS_CACHE);
+        if (cache != null) {
+            cache.evict(roleId);
+        }
+    }
+
+    private void clearCurrentUserMenusCache() {
+        Cache cache = cacheManager.getCache(CURRENT_USER_MENUS_CACHE);
+        if (cache != null) {
+            cache.clear();
         }
     }
 }

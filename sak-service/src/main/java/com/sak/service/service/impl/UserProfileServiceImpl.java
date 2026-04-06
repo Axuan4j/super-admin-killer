@@ -72,7 +72,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     @Transactional
-    @LogRecord(success = "更新个人资料", fail = "更新个人资料失败", type = "PROFILE", subType = "UPDATE", bizNo = "{{#username}}")
+    @LogRecord(success = "更新个人资料", fail = "更新个人资料失败", type = "PROFILE", subType = "UPDATE", bizNo = "{{#p0}}")
     public UserInfoResponse updateUserProfile(String username, UserProfileUpdateRequest request) {
         SysUser user = getRequiredUser(username);
         if (!StringUtils.hasText(request.getNickName())) {
@@ -88,7 +88,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     @Transactional
-    @LogRecord(success = "修改个人密码", fail = "修改个人密码失败", type = "PROFILE", subType = "PASSWORD", bizNo = "{{#username}}")
+    @LogRecord(success = "修改个人密码", fail = "修改个人密码失败", type = "PROFILE", subType = "PASSWORD", bizNo = "{{#p0}}")
     public void updatePassword(String username, UserPasswordUpdateRequest request) {
         SysUser user = getRequiredUser(username);
         if (!StringUtils.hasText(request.getOldPassword()) || !StringUtils.hasText(request.getNewPassword())) {

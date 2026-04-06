@@ -12,6 +12,9 @@ import com.sak.service.mapper.SysMenuMapper;
 import com.sak.service.mapper.SysRoleMenuMapper;
 import com.sak.service.service.AdminMenuService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -22,11 +25,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminMenuServiceImpl implements AdminMenuService {
 
+    private static final String ROLE_MENU_IDS_CACHE = "role-menu-ids";
+    private static final String ADMIN_MANAGE_MENUS_CACHE = "admin-manage-menus";
+    private static final String CURRENT_USER_MENUS_CACHE = "current-user-menus";
+
     private final SysMenuMapper sysMenuMapper;
     private final SysRoleMenuMapper sysRoleMenuMapper;
+    private final CacheManager cacheManager;
 
     @Override
-    public PageResponse<MenuAdminResponse> listMenus(String keyword, String menuType, long current, long size) {
+    public List<MenuAdminResponse> listMenus(String keyword, String menuType) {
         LambdaQueryWrapper<SysMenu> queryWrapper = new LambdaQueryWrapper<SysMenu>()
                 .orderByAsc(SysMenu::getParentId)
                 .orderByAsc(SysMenu::getOrderNum)
@@ -43,41 +51,49 @@ public class AdminMenuServiceImpl implements AdminMenuService {
             queryWrapper.eq(SysMenu::getMenuType, menuType);
         }
 
-        Page<SysMenu> page = sysMenuMapper.selectPage(new Page<>(current, size), queryWrapper);
-        List<MenuAdminResponse> records = page.getRecords().stream()
+        List<SysMenu> sysMenus = sysMenuMapper.selectList(queryWrapper);
+        return sysMenus.stream()
                 .map(this::toResponse)
                 .toList();
-        return new PageResponse<>(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     @Override
-    @LogRecord(success = "新增菜单：{{#request.menuName}}", fail = "新增菜单失败：{{#request.menuName}}", type = "MENU", subType = "CREATE", bizNo = "{{#_ret.id}}")
+    @LogRecord(success = "新增菜单：{{#p0.menuName}}", fail = "新增菜单失败：{{#p0.menuName}}", type = "MENU", subType = "CREATE", bizNo = "{{#_ret.id}}")
     public MenuAdminResponse createMenu(MenuSaveRequest request) {
         SysMenu menu = new SysMenu();
         applyRequest(menu, request);
         sysMenuMapper.insert(menu);
+        clearMenuRelatedCaches();
         return toResponse(menu);
     }
 
     @Override
-    @LogRecord(success = "编辑菜单：{{#request.menuName}}", fail = "编辑菜单失败：{{#request.menuName}}", type = "MENU", subType = "UPDATE", bizNo = "{{#id}}")
+    @LogRecord(success = "编辑菜单：{{#p1.menuName}}", fail = "编辑菜单失败：{{#p1.menuName}}", type = "MENU", subType = "UPDATE", bizNo = "{{#p0}}")
     public MenuAdminResponse updateMenu(Long id, MenuSaveRequest request) {
         SysMenu menu = requireMenu(id);
         applyRequest(menu, request);
         sysMenuMapper.updateById(menu);
+        clearMenuRelatedCaches();
         return toResponse(menu);
     }
 
     @Override
     @Transactional
-    @LogRecord(success = "删除菜单：{{#id}}", fail = "删除菜单失败：{{#id}}", type = "MENU", subType = "DELETE", bizNo = "{{#id}}")
+    @LogRecord(success = "删除菜单：{{#p0}}", fail = "删除菜单失败：{{#p0}}", type = "MENU", subType = "DELETE", bizNo = "{{#p0}}")
     public void deleteMenu(Long id) {
         long childCount = sysMenuMapper.selectCount(new LambdaQueryWrapper<SysMenu>().eq(SysMenu::getParentId, id));
         if (childCount > 0) {
             throw new IllegalArgumentException("请先删除子菜单或按钮");
         }
+        List<Long> affectedRoleIds = sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getMenuId, id))
+                .stream()
+                .map(SysRoleMenu::getRoleId)
+                .distinct()
+                .toList();
         sysRoleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getMenuId, id));
         sysMenuMapper.deleteById(id);
+        evictRoleMenuCache(affectedRoleIds);
+        clearMenuRelatedCaches();
     }
 
     private void applyRequest(SysMenu menu, MenuSaveRequest request) {
@@ -115,5 +131,28 @@ public class AdminMenuServiceImpl implements AdminMenuService {
         response.setIcon(menu.getIcon());
         response.setRemark(menu.getRemark());
         return response;
+    }
+
+    private void evictRoleMenuCache(List<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return;
+        }
+        Cache cache = cacheManager.getCache(ROLE_MENU_IDS_CACHE);
+        if (cache == null) {
+            return;
+        }
+        roleIds.forEach(cache::evict);
+    }
+
+    private void clearMenuRelatedCaches() {
+        clearCache(ADMIN_MANAGE_MENUS_CACHE);
+        clearCache(CURRENT_USER_MENUS_CACHE);
+    }
+
+    private void clearCache(String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+        }
     }
 }

@@ -1,5 +1,4 @@
 import request from './request'
-import type { PageResponse } from './types'
 
 export interface MenuManageItem {
   id: number
@@ -28,8 +27,8 @@ export interface MenuSavePayload {
   remark?: string
 }
 
-export const getManageMenus = (params?: { keyword?: string; menuType?: string; current?: number; size?: number }) =>
-  request.get<unknown, PageResponse<MenuManageItem>>('/system/menus', { params })
+export const getManageMenus = (params?: { keyword?: string; menuType?: string }) =>
+  request.get<unknown, MenuManageItem[]>('/system/menus', { params })
 export const createMenu = (data: MenuSavePayload) => request.post<unknown, MenuManageItem>('/system/menus', data)
 export const updateMenu = (id: number, data: MenuSavePayload) => request.put<unknown, MenuManageItem>(`/system/menus/${id}`, data)
 export const deleteMenu = (id: number) => request.delete(`/system/menus/${id}`)

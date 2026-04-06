@@ -5,9 +5,8 @@ import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.RoleSaveRequest;
 import com.sak.service.service.AdminRoleService;
-import com.sak.service.service.PermissionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,48 +17,46 @@ import java.util.List;
 public class AdminRoleController {
 
     private final AdminRoleService adminRoleService;
-    private final PermissionService permissionService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('system:role:view')")
     public Result<PageResponse<RoleOptionResponse>> listRoles(
-            Authentication authentication,
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "current", defaultValue = "1") long current,
             @RequestParam(name = "size", defaultValue = "10") long size
     ) {
-        permissionService.requirePermission(authentication, "system:role:view");
         return Result.success(adminRoleService.listRoles(keyword, status, current, size));
     }
 
     @PostMapping
-    public Result<RoleOptionResponse> createRole(Authentication authentication, @RequestBody RoleSaveRequest request) {
-        permissionService.requirePermission(authentication, "system:role:add");
+    @PreAuthorize("hasAuthority('system:role:add')")
+    public Result<RoleOptionResponse> createRole(@RequestBody RoleSaveRequest request) {
         return Result.success(adminRoleService.createRole(request));
     }
 
     @PutMapping("/{id}")
-    public Result<RoleOptionResponse> updateRole(Authentication authentication, @PathVariable Long id, @RequestBody RoleSaveRequest request) {
-        permissionService.requirePermission(authentication, "system:role:edit");
+    @PreAuthorize("hasAuthority('system:role:edit')")
+    public Result<RoleOptionResponse> updateRole(@PathVariable("id") Long id, @RequestBody RoleSaveRequest request) {
         return Result.success(adminRoleService.updateRole(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public Result<Void> deleteRole(Authentication authentication, @PathVariable Long id) {
-        permissionService.requirePermission(authentication, "system:role:remove");
+    @PreAuthorize("hasAuthority('system:role:remove')")
+    public Result<Void> deleteRole(@PathVariable("id") Long id) {
         adminRoleService.deleteRole(id);
         return Result.success();
     }
 
     @GetMapping("/{id}/menu-ids")
-    public Result<List<Long>> getRoleMenuIds(Authentication authentication, @PathVariable Long id) {
-        permissionService.requirePermission(authentication, "system:role:edit");
+    @PreAuthorize("hasAuthority('system:role:edit')")
+    public Result<List<Long>> getRoleMenuIds(@PathVariable("id") Long id) {
         return Result.success(adminRoleService.getRoleMenuIds(id));
     }
 
     @PutMapping("/{id}/menu-ids")
-    public Result<Void> updateRoleMenuIds(Authentication authentication, @PathVariable Long id, @RequestBody List<Long> menuIds) {
-        permissionService.requirePermission(authentication, "system:role:edit");
+    @PreAuthorize("hasAuthority('system:role:edit')")
+    public Result<Void> updateRoleMenuIds(@PathVariable("id") Long id, @RequestBody List<Long> menuIds) {
         adminRoleService.updateRoleMenus(id, menuIds);
         return Result.success();
     }

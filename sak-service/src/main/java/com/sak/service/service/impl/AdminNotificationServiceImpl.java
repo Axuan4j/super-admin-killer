@@ -38,7 +38,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     @Override
     @Transactional
-    @LogRecord(success = "发送通知：{{#request.title}}", fail = "发送通知失败：{{#request.title}}", type = "NOTIFICATION", subType = "SEND", bizNo = "{{#request.title}}")
+    @LogRecord(success = "发送通知：{{#p1.title}}", fail = "发送通知失败：{{#p1.title}}", type = "NOTIFICATION", subType = "SEND", bizNo = "{{#p1.title}}")
     public int sendNotification(Authentication authentication, NotificationSendRequest request) {
         validateRequest(request);
 

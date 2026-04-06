@@ -3,11 +3,10 @@ package com.sak.service.controller;
 import com.sak.service.common.Result;
 import com.sak.service.dto.OnlineUserSessionResponse;
 import com.sak.service.service.AdminOnlineUserService;
-import com.sak.service.service.PermissionService;
 import com.sak.service.service.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,18 +21,17 @@ import java.util.List;
 public class AdminOnlineUserController {
 
     private final AdminOnlineUserService adminOnlineUserService;
-    private final PermissionService permissionService;
     private final TokenService tokenService;
 
     @GetMapping
-    public Result<List<OnlineUserSessionResponse>> listOnlineUsers(Authentication authentication, HttpServletRequest request) {
-        permissionService.requirePermission(authentication, "system:online:view");
+    @PreAuthorize("hasAuthority('system:online:view')")
+    public Result<List<OnlineUserSessionResponse>> listOnlineUsers(HttpServletRequest request) {
         return Result.success(adminOnlineUserService.listOnlineUsers(resolveCurrentSessionId(request)));
     }
 
     @DeleteMapping("/{sessionId}")
-    public Result<Void> forceLogout(Authentication authentication, @PathVariable("sessionId") String sessionId) {
-        permissionService.requirePermission(authentication, "system:online:forceLogout");
+    @PreAuthorize("hasAuthority('system:online:forceLogout')")
+    public Result<Void> forceLogout(@PathVariable("sessionId") String sessionId) {
         adminOnlineUserService.forceLogout(sessionId);
         return Result.success();
     }

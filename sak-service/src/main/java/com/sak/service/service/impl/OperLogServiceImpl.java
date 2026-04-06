@@ -18,18 +18,17 @@ public class OperLogServiceImpl implements OperLogService {
     private final SysOperLogMapper sysOperLogMapper;
 
     @Override
-    public PageResponse<OperLogResponse> listLogs(String keyword, Integer success, long current, long size) {
+    public PageResponse<OperLogResponse> listLogs(String operator, String logType, String action, Integer success, long current, long size) {
         LambdaQueryWrapper<SysOperLog> queryWrapper = new LambdaQueryWrapper<SysOperLog>()
                 .orderByDesc(SysOperLog::getId);
-        if (StringUtils.hasText(keyword)) {
-            queryWrapper.and(wrapper -> wrapper
-                    .like(SysOperLog::getOperator, keyword)
-                    .or()
-                    .like(SysOperLog::getAction, keyword)
-                    .or()
-                    .like(SysOperLog::getLogType, keyword)
-                    .or()
-                    .like(SysOperLog::getRequestUrl, keyword));
+        if (StringUtils.hasText(operator)) {
+            queryWrapper.like(SysOperLog::getOperator, operator);
+        }
+        if (StringUtils.hasText(logType)) {
+            queryWrapper.like(SysOperLog::getLogType, logType);
+        }
+        if (StringUtils.hasText(action)) {
+            queryWrapper.like(SysOperLog::getAction, action);
         }
         if (success != null) {
             queryWrapper.eq(SysOperLog::getSuccess, success);

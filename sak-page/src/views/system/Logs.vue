@@ -2,11 +2,17 @@
   <div class="page-container">
     <a-card title="操作日志">
       <template #extra>
-        <a-button :loading="loading" @click="loadData">刷新</a-button>
+        <a-space>
+          <a-button @click="handleSearch" type="primary" :loading="loading">查询</a-button>
+          <a-button @click="handleReset" :loading="loading">重置</a-button>
+          <a-button :loading="loading" @click="loadData">刷新</a-button>
+        </a-space>
       </template>
 
       <a-space class="toolbar">
-        <a-input v-model="keyword" allow-clear placeholder="搜索操作人/描述/类型/URL" style="width: 320px" />
+        <a-input v-model="operatorKeyword" allow-clear placeholder="操作人" style="width: 180px" />
+        <a-input v-model="logTypeKeyword" allow-clear placeholder="日志类型" style="width: 180px" />
+        <a-input v-model="actionKeyword" allow-clear placeholder="操作描述" style="width: 240px" />
         <a-select v-model="successFilter" allow-clear placeholder="执行结果" style="width: 160px">
           <a-option v-for="item in successOptions" :key="item.value" :value="Number(item.value)">{{ item.label }}</a-option>
         </a-select>
@@ -65,21 +71,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { getOperLogs, type OperLogItem } from '@/api/operLog.ts'
 import { useDictStore } from '@/stores/dict.ts'
 
 const dictStore = useDictStore()
 const loading = ref(false)
 const logs = ref<OperLogItem[]>([])
-const keyword = ref('')
+const operatorKeyword = ref('')
+const logTypeKeyword = ref('')
+const actionKeyword = ref('')
 const successFilter = ref<number | undefined>()
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const detailVisible = ref(false)
 const currentLog = ref<OperLogItem | null>(null)
-let searchTimer: ReturnType<typeof setTimeout> | null = null
 const successOptions = computed(() => dictStore.getDictItems('sys_oper_success'))
 
 const columns = [
@@ -105,7 +112,9 @@ const loadData = async () => {
   loading.value = true
   try {
     const page = await getOperLogs({
-      keyword: keyword.value || undefined,
+      operator: operatorKeyword.value.trim() || undefined,
+      logType: logTypeKeyword.value.trim() || undefined,
+      action: actionKeyword.value.trim() || undefined,
       success: successFilter.value,
       current: currentPage.value,
       size: pageSize.value
@@ -133,29 +142,22 @@ const openDetail = (record: OperLogItem) => {
   detailVisible.value = true
 }
 
-watch(successFilter, () => {
+const handleSearch = () => {
   currentPage.value = 1
   loadData()
-})
+}
 
-watch(keyword, () => {
+const handleReset = () => {
+  operatorKeyword.value = ''
+  logTypeKeyword.value = ''
+  actionKeyword.value = ''
+  successFilter.value = undefined
   currentPage.value = 1
-  if (searchTimer) {
-    clearTimeout(searchTimer)
-  }
-  searchTimer = setTimeout(() => {
-    loadData()
-  }, 400)
-})
+  loadData()
+}
 
 onMounted(() => {
   loadData()
-})
-
-onUnmounted(() => {
-  if (searchTimer) {
-    clearTimeout(searchTimer)
-  }
 })
 </script>
 

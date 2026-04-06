@@ -26,7 +26,7 @@ public class AdminOnlineUserServiceImpl implements AdminOnlineUserService {
     }
 
     @Override
-    @LogRecord(success = "强制下线会话：{{#sessionId}}", fail = "强制下线失败：{{#sessionId}}", type = "ONLINE", subType = "FORCE_LOGOUT", bizNo = "{{#sessionId}}")
+    @LogRecord(success = "强制下线会话：{{#p0}}", fail = "强制下线失败：{{#p0}}", type = "ONLINE", subType = "FORCE_LOGOUT", bizNo = "{{#p0}}")
     public void forceLogout(String sessionId) {
         if (!tokenService.hasSession(sessionId)) {
             throw new IllegalArgumentException("在线会话不存在或已失效");

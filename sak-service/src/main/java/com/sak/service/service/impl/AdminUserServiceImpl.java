@@ -71,7 +71,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    @LogRecord(success = "新增用户：{{#request.username}}", fail = "新增用户失败：{{#request.username}}", type = "USER", subType = "CREATE", bizNo = "{{#_ret.id}}")
+    @LogRecord(success = "新增用户：{{#p0.username}}", fail = "新增用户失败：{{#p0.username}}", type = "USER", subType = "CREATE", bizNo = "{{#_ret.id}}")
     public UserAdminResponse createUser(UserSaveRequest request) {
         validateUsernameUnique(request.getUsername(), null);
         if (!StringUtils.hasText(request.getPassword())) {
@@ -87,7 +87,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    @LogRecord(success = "编辑用户：{{#request.username}}", fail = "编辑用户失败：{{#request.username}}", type = "USER", subType = "UPDATE", bizNo = "{{#id}}")
+    @LogRecord(success = "编辑用户：{{#p1.username}}", fail = "编辑用户失败：{{#p1.username}}", type = "USER", subType = "UPDATE", bizNo = "{{#p0}}")
     public UserAdminResponse updateUser(Long id, UserSaveRequest request) {
         SysUser user = requireUser(id);
         validateUsernameUnique(request.getUsername(), id);
@@ -99,7 +99,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    @LogRecord(success = "删除用户：{{#id}}", fail = "删除用户失败：{{#id}}", type = "USER", subType = "DELETE", bizNo = "{{#id}}")
+    @LogRecord(success = "删除用户：{{#p0}}", fail = "删除用户失败：{{#p0}}", type = "USER", subType = "DELETE", bizNo = "{{#p0}}")
     public void deleteUser(Long id) {
         sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, id));
         sysUserMapper.deleteById(id);

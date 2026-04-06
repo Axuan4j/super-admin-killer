@@ -4,8 +4,11 @@ import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.MenuAdminResponse;
 import com.sak.service.dto.MenuSaveRequest;
 
+import java.util.List;
+
 public interface AdminMenuService {
-    PageResponse<MenuAdminResponse> listMenus(String keyword, String menuType, long current, long size);
+
+    List<MenuAdminResponse> listMenus(String keyword, String menuType);
 
     MenuAdminResponse createMenu(MenuSaveRequest request);
 

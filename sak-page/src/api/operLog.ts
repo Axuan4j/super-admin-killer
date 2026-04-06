@@ -19,5 +19,12 @@ export interface OperLogItem {
   createTime?: string
 }
 
-export const getOperLogs = (params: { keyword?: string; success?: number; current: number; size: number }) =>
+export const getOperLogs = (params: {
+  operator?: string
+  logType?: string
+  action?: string
+  success?: number
+  current: number
+  size: number
+}) =>
   request.get<unknown, PageResponse<OperLogItem>>('/system/logs', { params })

@@ -4,9 +4,8 @@ import com.sak.service.common.Result;
 import com.sak.service.dto.OperLogResponse;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.service.OperLogService;
-import com.sak.service.service.PermissionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,17 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperLogController {
 
     private final OperLogService operLogService;
-    private final PermissionService permissionService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('system:log:view')")
     public Result<PageResponse<OperLogResponse>> listLogs(
-            Authentication authentication,
-            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "operator", required = false) String operator,
+            @RequestParam(name = "logType", required = false) String logType,
+            @RequestParam(name = "action", required = false) String action,
             @RequestParam(name = "success", required = false) Integer success,
             @RequestParam(name = "current", defaultValue = "1") long current,
             @RequestParam(name = "size", defaultValue = "10") long size
     ) {
-        permissionService.requirePermission(authentication, "system:log:view");
-        return Result.success(operLogService.listLogs(keyword, success, current, size));
+        return Result.success(operLogService.listLogs(operator, logType, action, success, current, size));
     }
 }
