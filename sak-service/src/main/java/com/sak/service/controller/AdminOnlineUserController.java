@@ -32,7 +32,7 @@ public class AdminOnlineUserController {
     }
 
     @DeleteMapping("/{sessionId}")
-    public Result<Void> forceLogout(Authentication authentication, @PathVariable String sessionId) {
+    public Result<Void> forceLogout(Authentication authentication, @PathVariable("sessionId") String sessionId) {
         permissionService.requirePermission(authentication, "system:online:forceLogout");
         adminOnlineUserService.forceLogout(sessionId);
         return Result.success();

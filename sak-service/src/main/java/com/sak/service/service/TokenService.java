@@ -62,12 +62,14 @@ public class TokenService {
     }
 
     public Map<String, String> generateTokenAndCache(UserDetails userDetails, HttpServletRequest request) {
-        String sessionId = UUID.randomUUID().toString();
-        String accessToken = jwtUtils.generateAccessToken(userDetails.getUsername());
-        String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
         SysUser user = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getUsername, userDetails.getUsername())
                 .last("limit 1"));
+        invalidateExistingSessions(user, userDetails.getUsername());
+
+        String sessionId = UUID.randomUUID().toString();
+        String accessToken = jwtUtils.generateAccessToken(userDetails.getUsername());
+        String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
         String currentTime = now();
 
         redisTemplate.opsForValue().set(accessKey(accessToken), sessionId, accessTokenExpiration);
@@ -104,6 +106,30 @@ public class TokenService {
         tokens.put("refreshToken", refreshToken);
         tokens.put("sessionId", sessionId);
         return tokens;
+    }
+
+    private void invalidateExistingSessions(SysUser user, String username) {
+        if (user == null || user.getId() == null) {
+            redisTemplate.delete(USER_PREFIX + username);
+            return;
+        }
+
+        String userSessionsKey = USER_SESSIONS_PREFIX + user.getId();
+        Set<Object> sessionIds = redisTemplate.opsForSet().members(userSessionsKey);
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            redisTemplate.delete(USER_PREFIX + username);
+            return;
+        }
+
+        for (Object rawSessionId : sessionIds) {
+            if (rawSessionId == null) {
+                continue;
+            }
+            String sessionId = String.valueOf(rawSessionId);
+            if (StringUtils.hasText(sessionId)) {
+                deleteSession(sessionId);
+            }
+        }
     }
 
     public String extractUsernameFromToken(String token) {
