@@ -1,0 +1,123 @@
+package com.superkiller.backend.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mzt.logapi.starter.annotation.LogRecord;
+import com.superkiller.backend.dto.UserPasswordUpdateRequest;
+import com.superkiller.backend.dto.UserProfileUpdateRequest;
+import com.superkiller.backend.dto.UserInfoResponse;
+import com.superkiller.backend.entity.SysRole;
+import com.superkiller.backend.entity.SysUser;
+import com.superkiller.backend.entity.SysUserRole;
+import com.superkiller.backend.mapper.SysRoleMapper;
+import com.superkiller.backend.mapper.SysUserMapper;
+import com.superkiller.backend.mapper.SysUserRoleMapper;
+import com.superkiller.backend.service.CustomUserDetailsService;
+import com.superkiller.backend.service.UserProfileService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class UserProfileServiceImpl implements UserProfileService {
+
+    private final SysUserMapper sysUserMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
+    private final SysRoleMapper sysRoleMapper;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public UserInfoResponse getUserInfo(String username) {
+        SysUser user = getRequiredUser(username);
+        if (user == null) {
+            return null;
+        }
+
+        List<Long> roleIds = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRole>()
+                        .eq(SysUserRole::getUserId, user.getId()))
+                .stream()
+                .map(SysUserRole::getRoleId)
+                .distinct()
+                .toList();
+
+        List<String> roles = roleIds.isEmpty()
+                ? Collections.emptyList()
+                : sysRoleMapper.selectBatchIds(roleIds).stream()
+                .map(SysRole::getRoleKey)
+                .filter(roleKey -> roleKey != null && !roleKey.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
+
+        Set<String> permissions = customUserDetailsService.getPermissionsByUserId(user.getId());
+
+        return new UserInfoResponse(
+                user.getId(),
+                user.getUsername(),
+                (user.getNickName() == null || user.getNickName().isBlank()) ? user.getUsername() : user.getNickName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getAvatar(),
+                roles,
+                permissions.stream().sorted().collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    @Transactional
+    @LogRecord(success = "更新个人资料", fail = "更新个人资料失败", type = "PROFILE", subType = "UPDATE", bizNo = "{{#username}}")
+    public UserInfoResponse updateUserProfile(String username, UserProfileUpdateRequest request) {
+        SysUser user = getRequiredUser(username);
+        if (!StringUtils.hasText(request.getNickName())) {
+            throw new IllegalArgumentException("昵称不能为空");
+        }
+        user.setNickName(request.getNickName().trim());
+        user.setEmail(normalize(request.getEmail()));
+        user.setPhone(normalize(request.getPhone()));
+        user.setAvatar(normalize(request.getAvatar()));
+        sysUserMapper.updateById(user);
+        return getUserInfo(username);
+    }
+
+    @Override
+    @Transactional
+    @LogRecord(success = "修改个人密码", fail = "修改个人密码失败", type = "PROFILE", subType = "PASSWORD", bizNo = "{{#username}}")
+    public void updatePassword(String username, UserPasswordUpdateRequest request) {
+        SysUser user = getRequiredUser(username);
+        if (!StringUtils.hasText(request.getOldPassword()) || !StringUtils.hasText(request.getNewPassword())) {
+            throw new IllegalArgumentException("原密码和新密码不能为空");
+        }
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("原密码不正确");
+        }
+        if (request.getNewPassword().trim().length() < 6) {
+            throw new IllegalArgumentException("新密码至少 6 位");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("新密码不能与原密码相同");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
+        sysUserMapper.updateById(user);
+    }
+
+    private SysUser getRequiredUser(String username) {
+        SysUser user = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUsername, username)
+                .last("limit 1"));
+        if (user == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        return user;
+    }
+
+    private String normalize(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
+    }
+}

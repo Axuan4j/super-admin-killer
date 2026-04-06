@@ -1,0 +1,95 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 http://maven.apache.org/xsd/assembly-2.1.1.xsd">
+    <id>dist</id>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <formats>
+        <format>dir</format>
+        <format>zip</format>
+    </formats>
+
+    <files>
+        <file>
+            <source>${project.build.directory}/${project.build.finalName}.jar</source>
+            <outputDirectory>/app</outputDirectory>
+        </file>
+    </files>
+
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>/lib</outputDirectory>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+        </dependencySet>
+    </dependencySets>
+
+    <fileSets>
+        <fileSet>
+            <directory>src/assembly/bin</directory>
+            <outputDirectory>/bin</outputDirectory>
+            <fileMode>0755</fileMode>
+            <includes>
+                <include>start.sh</include>
+                <include>start.bat</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>/config</outputDirectory>
+            <includes>
+                <include>application*.yml</include>
+                <include>application*.yaml</include>
+                <include>application*.properties</include>
+                <include>banner.txt</include>
+                <include>logback*.xml</include>
+                <include>log4j2*.xml</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>src/main/resources/schema</directory>
+            <outputDirectory>/sql</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+            <useDefaultExcludes>false</useDefaultExcludes>
+        </fileSet>
+
+        <fileSet>
+            <directory>src/main/resources/static</directory>
+            <outputDirectory>/static</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+            <useDefaultExcludes>false</useDefaultExcludes>
+        </fileSet>
+
+        <fileSet>
+            <directory>src/main/resources/public</directory>
+            <outputDirectory>/static</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+            <useDefaultExcludes>false</useDefaultExcludes>
+        </fileSet>
+
+        <fileSet>
+            <directory>src/main/resources/templates</directory>
+            <outputDirectory>/static/templates</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+            <useDefaultExcludes>false</useDefaultExcludes>
+        </fileSet>
+
+        <fileSet>
+            <directory>src/main/resources/META-INF/resources</directory>
+            <outputDirectory>/static</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+            <useDefaultExcludes>false</useDefaultExcludes>
+        </fileSet>
+    </fileSets>
+</assembly>

@@ -1,0 +1,173 @@
+<template>
+  <div class="page-container">
+    <a-card title="操作日志">
+      <template #extra>
+        <a-button :loading="loading" @click="loadData">刷新</a-button>
+      </template>
+
+      <a-space class="toolbar">
+        <a-input v-model="keyword" allow-clear placeholder="搜索操作人/描述/类型/URL" style="width: 320px" />
+        <a-select v-model="successFilter" allow-clear placeholder="执行结果" style="width: 160px">
+          <a-option :value="1">成功</a-option>
+          <a-option :value="0">失败</a-option>
+        </a-select>
+      </a-space>
+
+      <a-table
+        :columns="columns"
+        :data="logs"
+        :loading="loading"
+        :pagination="{
+          total,
+          current: currentPage,
+          pageSize,
+          showTotal: true,
+          showPageSize: true
+        }"
+        row-key="id"
+        @page-change="handlePageChange"
+        @page-size-change="handlePageSizeChange"
+      >
+        <template #success="{ record }">
+          <a-tag :color="record.success === 1 ? 'green' : 'red'">
+            {{ record.success === 1 ? '成功' : '失败' }}
+          </a-tag>
+        </template>
+        <template #action="{ record }">
+          <div class="action-cell">{{ record.action || '-' }}</div>
+        </template>
+        <template #createTime="{ record }">
+          {{ formatDateTime(record.createTime) }}
+        </template>
+        <template #operations="{ record }">
+          <a-button type="text" size="small" @click="openDetail(record)">详情</a-button>
+        </template>
+      </a-table>
+    </a-card>
+
+    <a-modal v-model:visible="detailVisible" title="日志详情" :footer="false" width="720px">
+      <a-descriptions v-if="currentLog" :column="2" bordered>
+        <a-descriptions-item label="操作人">{{ currentLog.operator || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="结果">{{ currentLog.success === 1 ? '成功' : '失败' }}</a-descriptions-item>
+        <a-descriptions-item label="日志类型">{{ currentLog.logType || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="子类型">{{ currentLog.subType || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="业务标识">{{ currentLog.bizNo || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="IP">{{ currentLog.ip || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="请求方式">{{ currentLog.requestMethod || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="请求地址">{{ currentLog.requestUrl || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="记录时间">{{ formatDateTime(currentLog.createTime) }}</a-descriptions-item>
+        <a-descriptions-item label="方法标识">{{ currentLog.method || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="操作描述" :span="2">{{ currentLog.action || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="附加信息" :span="2">{{ currentLog.extra || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="错误信息" :span="2">{{ currentLog.errMsg || '-' }}</a-descriptions-item>
+      </a-descriptions>
+    </a-modal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { getOperLogs, type OperLogItem } from '@/api/operLog.ts'
+
+const loading = ref(false)
+const logs = ref<OperLogItem[]>([])
+const keyword = ref('')
+const successFilter = ref<number | undefined>()
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const detailVisible = ref(false)
+const currentLog = ref<OperLogItem | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const columns = [
+  { title: 'ID', dataIndex: 'id', width: 80 },
+  { title: '操作人', dataIndex: 'operator', width: 120 },
+  { title: '日志类型', dataIndex: 'logType', width: 120 },
+  { title: '子类型', dataIndex: 'subType', width: 120 },
+  { title: '操作描述', slotName: 'action' },
+  { title: 'IP地址', dataIndex: 'ip', width: 140 },
+  { title: '结果', slotName: 'success', width: 90 },
+  { title: '操作时间', slotName: 'createTime', width: 180 },
+  { title: '操作', slotName: 'operations', width: 80 }
+]
+
+const formatDateTime = (value?: string) => {
+  if (!value) {
+    return '-'
+  }
+  return value.replace('T', ' ').slice(0, 19)
+}
+
+const loadData = async () => {
+  loading.value = true
+  try {
+    const page = await getOperLogs({
+      keyword: keyword.value || undefined,
+      success: successFilter.value,
+      current: currentPage.value,
+      size: pageSize.value
+    })
+    logs.value = page.records
+    total.value = page.total
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  loadData()
+}
+
+const handlePageSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadData()
+}
+
+const openDetail = (record: OperLogItem) => {
+  currentLog.value = record
+  detailVisible.value = true
+}
+
+watch(successFilter, () => {
+  currentPage.value = 1
+  loadData()
+})
+
+watch(keyword, () => {
+  currentPage.value = 1
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  searchTimer = setTimeout(() => {
+    loadData()
+  }, 400)
+})
+
+onMounted(() => {
+  loadData()
+})
+
+onUnmounted(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+})
+</script>
+
+<style scoped>
+.page-container {
+  min-height: 100%;
+}
+
+.toolbar {
+  margin-bottom: 16px;
+}
+
+.action-cell {
+  color: #1d2129;
+  line-height: 1.5;
+}
+</style>
