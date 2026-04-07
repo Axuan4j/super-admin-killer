@@ -7,12 +7,10 @@ import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.RoleSaveRequest;
 import com.sak.service.entity.SysRole;
-import com.sak.service.entity.SysRoleMenu;
-import com.sak.service.entity.SysUserRole;
 import com.sak.service.mapper.SysRoleMapper;
-import com.sak.service.mapper.SysRoleMenuMapper;
-import com.sak.service.mapper.SysUserRoleMapper;
 import com.sak.service.service.AdminRoleService;
+import com.sak.service.service.RoleMenuRelationService;
+import com.sak.service.service.UserRoleRelationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -33,8 +31,8 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     private static final String CURRENT_USER_MENUS_CACHE = "current-user-menus";
 
     private final SysRoleMapper sysRoleMapper;
-    private final SysUserRoleMapper sysUserRoleMapper;
-    private final SysRoleMenuMapper sysRoleMenuMapper;
+    private final UserRoleRelationService userRoleRelationService;
+    private final RoleMenuRelationService roleMenuRelationService;
     private final CacheManager cacheManager;
 
     @Override
@@ -83,11 +81,11 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     @Transactional
     @LogRecord(success = "删除角色：{{#p0}}", fail = "删除角色失败：{{#p0}}", type = "ROLE", subType = "DELETE", bizNo = "{{#p0}}")
     public void deleteRole(Long id) {
-        long bindCount = sysUserRoleMapper.selectCount(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, id));
+        long bindCount = userRoleRelationService.countUsersByRoleId(id);
         if (bindCount > 0) {
             throw new IllegalArgumentException("该角色已绑定用户，无法删除");
         }
-        sysRoleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id));
+        roleMenuRelationService.replaceRoleMenus(id, List.of());
         sysRoleMapper.deleteById(id);
         evictRoleMenuCache(id);
         clearCurrentUserMenusCache();
@@ -97,10 +95,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     @Cacheable(cacheNames = ROLE_MENU_IDS_CACHE, key = "#p0")
     public List<Long> getRoleMenuIds(Long id) {
         requireRole(id);
-        return sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id))
-                .stream()
-                .map(SysRoleMenu::getMenuId)
-                .toList();
+        return roleMenuRelationService.getMenuIdsByRoleId(id);
     }
 
     @Override
@@ -110,18 +105,13 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         requireRole(id);
         List<Long> distinctMenuIds = normalizeMenuIds(menuIds);
 
-        sysRoleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id));
         if (distinctMenuIds.isEmpty()) {
+            roleMenuRelationService.replaceRoleMenus(id, List.of());
             putRoleMenuCache(id, distinctMenuIds);
             clearCurrentUserMenusCache();
             return;
         }
-        distinctMenuIds.forEach(menuId -> {
-            SysRoleMenu relation = new SysRoleMenu();
-            relation.setRoleId(id);
-            relation.setMenuId(menuId);
-            sysRoleMenuMapper.insert(relation);
-        });
+        roleMenuRelationService.replaceRoleMenus(id, distinctMenuIds);
         putRoleMenuCache(id, distinctMenuIds);
         clearCurrentUserMenusCache();
     }

@@ -96,6 +96,13 @@ public class AdminMenuServiceImpl implements AdminMenuService {
         clearMenuRelatedCaches();
     }
 
+    @Override
+    @LogRecord(success = "刷新权限缓存", fail = "刷新权限缓存失败", type = "MENU", subType = "REFRESH_CACHE", bizNo = "'permission-cache'")
+    public void clearPermissionCaches() {
+        clearCache(ROLE_MENU_IDS_CACHE);
+        clearMenuRelatedCaches();
+    }
+
     private void applyRequest(SysMenu menu, MenuSaveRequest request) {
         menu.setMenuName(request.getMenuName());
         menu.setParentId(request.getParentId() == null ? 0L : request.getParentId());

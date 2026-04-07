@@ -19,6 +19,7 @@ public class EmailNotificationChannel implements NotificationChannel {
     public static final String CHANNEL_CODE = "EMAIL";
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
+
     private final MailProperties mailProperties;
 
     @Override

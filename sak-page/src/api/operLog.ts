@@ -1,5 +1,6 @@
 import request from './request'
 import type { PageResponse } from './types'
+import type { ExportRecordItem } from './exportRecord'
 
 export interface OperLogItem {
   id: number
@@ -28,3 +29,11 @@ export const getOperLogs = (params: {
   size: number
 }) =>
   request.get<unknown, PageResponse<OperLogItem>>('/system/logs', { params })
+
+export const exportOperLogs = (data: {
+  operator?: string
+  logType?: string
+  action?: string
+  success?: number
+}) =>
+  request.post<unknown, ExportRecordItem>('/system/logs/export', data)

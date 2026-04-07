@@ -44,4 +44,11 @@ public class AdminMenuController {
         adminMenuService.deleteMenu(id);
         return Result.success();
     }
+
+    @PostMapping("/refresh-cache")
+    @PreAuthorize("hasAuthority('system:permission:view')")
+    public Result<Void> refreshPermissionCache() {
+        adminMenuService.clearPermissionCaches();
+        return Result.success();
+    }
 }

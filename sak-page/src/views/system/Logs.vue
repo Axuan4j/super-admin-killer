@@ -3,6 +3,15 @@
     <a-card title="操作日志">
       <template #extra>
         <a-space>
+          <a-button
+            v-if="authStore.hasPermission('system:log:export')"
+            type="primary"
+            status="success"
+            :loading="exporting"
+            @click="handleExport"
+          >
+            导出
+          </a-button>
           <a-button @click="handleSearch" type="primary" :loading="loading">查询</a-button>
           <a-button @click="handleReset" :loading="loading">重置</a-button>
           <a-button :loading="loading" @click="loadData">刷新</a-button>
@@ -72,11 +81,17 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { getOperLogs, type OperLogItem } from '@/api/operLog.ts'
+import { Message } from '@arco-design/web-vue'
+import { useRouter } from 'vue-router'
+import { exportOperLogs, getOperLogs, type OperLogItem } from '@/api/operLog.ts'
+import { useAuthStore } from '@/stores/auth.ts'
 import { useDictStore } from '@/stores/dict.ts'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const dictStore = useDictStore()
 const loading = ref(false)
+const exporting = ref(false)
 const logs = ref<OperLogItem[]>([])
 const operatorKeyword = ref('')
 const logTypeKeyword = ref('')
@@ -154,6 +169,22 @@ const handleReset = () => {
   successFilter.value = undefined
   currentPage.value = 1
   loadData()
+}
+
+const handleExport = async () => {
+  exporting.value = true
+  try {
+    const record = await exportOperLogs({
+      operator: operatorKeyword.value.trim() || undefined,
+      logType: logTypeKeyword.value.trim() || undefined,
+      action: actionKeyword.value.trim() || undefined,
+      success: successFilter.value
+    })
+    Message.success(`导出任务已创建，记录 ID：${record.id}`)
+    await router.push('/layout/system/downloads')
+  } finally {
+    exporting.value = false
+  }
 }
 
 onMounted(() => {

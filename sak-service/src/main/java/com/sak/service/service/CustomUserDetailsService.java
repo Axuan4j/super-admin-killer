@@ -4,13 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.sak.service.entity.SysMenu;
 import com.sak.service.entity.SysRole;
 import com.sak.service.entity.SysUser;
-import com.sak.service.entity.SysRoleMenu;
-import com.sak.service.entity.SysUserRole;
 import com.sak.service.mapper.SysMenuMapper;
 import com.sak.service.mapper.SysRoleMapper;
 import com.sak.service.mapper.SysUserMapper;
-import com.sak.service.mapper.SysRoleMenuMapper;
-import com.sak.service.mapper.SysUserRoleMapper;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,16 +24,16 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
     private final SysMenuMapper menuMapper;
-    private final SysUserRoleMapper userRoleMapper;
-    private final SysRoleMenuMapper roleMenuMapper;
+    private final UserRoleRelationService userRoleRelationService;
+    private final RoleMenuRelationService roleMenuRelationService;
 
     public CustomUserDetailsService(SysUserMapper userMapper, SysRoleMapper roleMapper, SysMenuMapper menuMapper,
-                                    SysUserRoleMapper userRoleMapper, SysRoleMenuMapper roleMenuMapper) {
+                                    UserRoleRelationService userRoleRelationService, RoleMenuRelationService roleMenuRelationService) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
         this.menuMapper = menuMapper;
-        this.userRoleMapper = userRoleMapper;
-        this.roleMenuMapper = roleMenuMapper;
+        this.userRoleRelationService = userRoleRelationService;
+        this.roleMenuRelationService = roleMenuRelationService;
     }
 
     @Override
@@ -59,12 +55,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     public List<Long> getRoleIdsByUserId(Long userId) {
-        return userRoleMapper.selectList(new LambdaQueryWrapper<SysUserRole>()
-                        .eq(SysUserRole::getUserId, userId))
-                .stream()
-                .map(SysUserRole::getRoleId)
-                .distinct()
-                .collect(Collectors.toList());
+        return userRoleRelationService.getRoleIdsByUserId(userId);
     }
 
     public Set<String> getPermissionsByUserId(Long userId) {
@@ -77,17 +68,13 @@ public class CustomUserDetailsService implements UserDetailsService {
             return Set.of();
         }
 
-        Set<Long> menuIds = roleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>()
-                        .in(SysRoleMenu::getRoleId, roleIds))
-                .stream()
-                .map(SysRoleMenu::getMenuId)
-                .collect(Collectors.toSet());
+        Set<Long> menuIds = roleMenuRelationService.getMenuIdsByRoleIds(roleIds);
 
         if (menuIds.isEmpty()) {
             return Set.of();
         }
 
-        return menuMapper.selectBatchIds(menuIds).stream()
+        return menuMapper.selectList(new LambdaQueryWrapper<SysMenu>().in(SysMenu::getId, menuIds)).stream()
                 .filter(menu -> "0".equals(menu.getVisible()))
                 .filter(menu -> "F".equalsIgnoreCase(menu.getMenuType()) || "C".equalsIgnoreCase(menu.getMenuType()))
                 .map(SysMenu::getPerms)
@@ -101,7 +88,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             return List.of();
         }
 
-        return roleMapper.selectBatchIds(roleIds).stream()
+        return roleMapper.selectList(new LambdaQueryWrapper<SysRole>().in(SysRole::getId, roleIds)).stream()
                 .filter(role -> "0".equals(role.getStatus()))
                 .collect(Collectors.toList());
     }

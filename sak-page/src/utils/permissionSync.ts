@@ -10,7 +10,7 @@ export const refreshPermissionContext = async () => {
     return
   }
 
-  await authStore.fetchUserInfo()
+  await authStore.fetchUserInfo(true)
   menuStore.resetMenus()
   resetDynamicRoutes()
   await menuStore.loadMenus()

@@ -9,11 +9,10 @@ import com.sak.service.dto.UserAdminResponse;
 import com.sak.service.dto.UserSaveRequest;
 import com.sak.service.entity.SysRole;
 import com.sak.service.entity.SysUser;
-import com.sak.service.entity.SysUserRole;
 import com.sak.service.mapper.SysRoleMapper;
 import com.sak.service.mapper.SysUserMapper;
-import com.sak.service.mapper.SysUserRoleMapper;
 import com.sak.service.service.AdminUserService;
+import com.sak.service.service.UserRoleRelationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,8 +30,8 @@ import java.util.stream.Collectors;
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final SysUserMapper sysUserMapper;
-    private final SysUserRoleMapper sysUserRoleMapper;
     private final SysRoleMapper sysRoleMapper;
+    private final UserRoleRelationService userRoleRelationService;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -53,15 +52,19 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         Page<SysUser> page = sysUserMapper.selectPage(new Page<>(current, size), queryWrapper);
         List<SysUser> users = page.getRecords();
-        List<SysUserRole> userRoles = sysUserRoleMapper.selectList(null);
-        Map<Long, List<Long>> userRoleIds = userRoles.stream()
-                .collect(Collectors.groupingBy(SysUserRole::getUserId,
-                        Collectors.mapping(SysUserRole::getRoleId, Collectors.toList())));
+        if (users.isEmpty()) {
+            return new PageResponse<>(List.of(), page.getTotal(), page.getCurrent(), page.getSize());
+        }
 
-        List<Long> allRoleIds = userRoles.stream().map(SysUserRole::getRoleId).distinct().toList();
+        List<Long> userIds = users.stream().map(SysUser::getId).toList();
+        Map<Long, List<Long>> userRoleIds = userRoleRelationService.getRoleIdsByUserIds(userIds);
+
+        List<Long> allRoleIds = userRoleIds.values().stream().flatMap(List::stream).distinct().toList();
         Map<Long, SysRole> roleMap = allRoleIds.isEmpty()
                 ? Collections.emptyMap()
-                : sysRoleMapper.selectBatchIds(allRoleIds).stream().collect(Collectors.toMap(SysRole::getId, role -> role));
+                : sysRoleMapper.selectList(new LambdaQueryWrapper<SysRole>().in(SysRole::getId, allRoleIds))
+                .stream()
+                .collect(Collectors.toMap(SysRole::getId, role -> role));
 
         List<UserAdminResponse> records = users.stream()
                 .map(user -> toResponse(user, userRoleIds.getOrDefault(user.getId(), List.of()), roleMap))
@@ -81,7 +84,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         SysUser user = new SysUser();
         applyRequest(user, request, true);
         sysUserMapper.insert(user);
-        replaceUserRoles(user.getId(), request.getRoleIds());
+        userRoleRelationService.replaceUserRoles(user.getId(), request.getRoleIds());
         return getUserById(user.getId());
     }
 
@@ -93,7 +96,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         validateUsernameUnique(request.getUsername(), id);
         applyRequest(user, request, false);
         sysUserMapper.updateById(user);
-        replaceUserRoles(id, request.getRoleIds());
+        userRoleRelationService.replaceUserRoles(id, request.getRoleIds());
         return getUserById(id);
     }
 
@@ -101,7 +104,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     @LogRecord(success = "删除用户：{{#p0}}", fail = "删除用户失败：{{#p0}}", type = "USER", subType = "DELETE", bizNo = "{{#p0}}")
     public void deleteUser(Long id) {
-        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, id));
+        userRoleRelationService.replaceUserRoles(id, List.of());
         sysUserMapper.deleteById(id);
     }
 
@@ -115,13 +118,12 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private UserAdminResponse getUserById(Long id) {
         SysUser user = requireUser(id);
-        List<Long> roleIds = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, id))
-                .stream()
-                .map(SysUserRole::getRoleId)
-                .toList();
+        List<Long> roleIds = userRoleRelationService.getRoleIdsByUserId(id);
         Map<Long, SysRole> roleMap = roleIds.isEmpty()
                 ? Collections.emptyMap()
-                : sysRoleMapper.selectBatchIds(roleIds).stream().collect(Collectors.toMap(SysRole::getId, role -> role));
+                : sysRoleMapper.selectList(new LambdaQueryWrapper<SysRole>().in(SysRole::getId, roleIds))
+                .stream()
+                .collect(Collectors.toMap(SysRole::getId, role -> role));
         return toResponse(user, roleIds, roleMap);
     }
 
@@ -155,19 +157,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (isCreate || StringUtils.hasText(request.getPassword())) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-    }
-
-    private void replaceUserRoles(Long userId, List<Long> roleIds) {
-        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
-        if (roleIds == null || roleIds.isEmpty()) {
-            return;
-        }
-        roleIds.stream().distinct().forEach(roleId -> {
-            SysUserRole userRole = new SysUserRole();
-            userRole.setUserId(userId);
-            userRole.setRoleId(roleId);
-            sysUserRoleMapper.insert(userRole);
-        });
     }
 
     private SysUser requireUser(Long id) {

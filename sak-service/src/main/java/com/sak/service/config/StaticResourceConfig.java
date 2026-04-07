@@ -36,13 +36,49 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         return avatarDir;
     }
 
+    public Path getStorageRootDir() {
+        return Paths.get(storageProperties.getRootDir()).toAbsolutePath().normalize();
+    }
+
+    public Path getExportStorageDir() {
+        Path root = getStorageRootDir();
+        Path exportDir = root.resolve("exports").normalize();
+        if (!exportDir.startsWith(root)) {
+            throw new IllegalStateException("Export storage directory is outside the configured root directory");
+        }
+        return exportDir;
+    }
+
     public String getAvatarAccessPrefix() {
         return normalizeAccessPath(storageProperties.getAccessPath()) + trimSlashes(storageProperties.getAvatarDir()) + "/";
+    }
+
+    public String getStorageAccessPrefix() {
+        return normalizeAccessPath(storageProperties.getAccessPath());
+    }
+
+    public Path createExportFile(String relativePath) {
+        Path root = getStorageRootDir();
+        Path normalized = root.resolve(trimSlashes(relativePath)).normalize();
+        if (!normalized.startsWith(root)) {
+            throw new IllegalStateException("Export file path is outside the configured root directory");
+        }
+        try {
+            Files.createDirectories(normalized.getParent());
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to initialize export storage directory", e);
+        }
+        return normalized;
+    }
+
+    public String toStorageRelativePath(Path filePath) {
+        return getStorageRootDir().relativize(filePath.toAbsolutePath().normalize()).toString().replace("\\", "/");
     }
 
     private void ensureStorageDirectory() {
         try {
             Files.createDirectories(getAvatarStorageDir());
+            Files.createDirectories(getExportStorageDir());
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize local storage directory", e);
         }

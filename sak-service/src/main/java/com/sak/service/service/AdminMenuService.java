@@ -15,4 +15,6 @@ public interface AdminMenuService {
     MenuAdminResponse updateMenu(Long id, MenuSaveRequest request);
 
     void deleteMenu(Long id);
+
+    void clearPermissionCaches();
 }

@@ -4,6 +4,7 @@
       <template #extra>
         <a-space>
           <a-button @click="loadData" :loading="loading">刷新</a-button>
+          <a-button type="outline" :loading="refreshingPermission" @click="handleRefreshPermission">刷新权限</a-button>
           <a-button v-if="authStore.hasPermission('system:permission:add')" type="primary" @click="openCreate">
             <template #icon>
               <font-awesome-icon icon="fa-solid fa-plus"/>
@@ -105,9 +106,12 @@ import {computed, onMounted, onUnmounted, reactive, ref, watch} from 'vue'
 import {Message} from '@arco-design/web-vue'
 import {useAuthStore} from '@/stores/auth.ts'
 import {createMenu, deleteMenu, getManageMenus, updateMenu, type MenuManageItem} from '@/api/adminMenu.ts'
+import { refreshPermissionCache } from '@/api/adminPermission'
+import { refreshPermissionContext } from '@/utils/permissionSync'
 
 const authStore = useAuthStore()
 const loading = ref(false)
+const refreshingPermission = ref(false)
 const modalVisible = ref(false)
 const editingId = ref<number | null>(null)
 const keyword = ref('')
@@ -292,6 +296,18 @@ const handleDelete = async (id: number) => {
   await deleteMenu(id)
   Message.success('删除成功')
   await loadData()
+}
+
+const handleRefreshPermission = async () => {
+  refreshingPermission.value = true
+  try {
+    await refreshPermissionCache()
+    await refreshPermissionContext()
+    await loadData()
+    Message.success('权限缓存已刷新')
+  } finally {
+    refreshingPermission.value = false
+  }
 }
 
 onMounted(() => {

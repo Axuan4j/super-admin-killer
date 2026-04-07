@@ -7,6 +7,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DELETE FROM `sys_role_menu`;
 DELETE FROM `sys_user_role`;
+DELETE FROM `sys_export_record`;
 DELETE FROM `sys_site_message`;
 DELETE FROM `sys_oper_log`;
 DELETE FROM `sys_dict_item`;
@@ -22,6 +23,7 @@ INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `co
 (4, '角色管理', 2, 2, '/layout/system/roles', '/system/roles', 'C', '0', 'system:role:view', 'fa-solid fa-user-shield', ''),
 (5, '权限管理', 2, 3, '/layout/system/permissions', '/system/permissions', 'C', '0', 'system:permission:view', 'fa-solid fa-key', ''),
 (9, '通知管理', 2, 4, '/layout/system/notifications', '/system/notifications', 'C', '0', 'system:notification:view', 'fa-solid fa-bullhorn', ''),
+(10, '下载中心', 2, 5, '/layout/system/downloads', '/system/downloads', 'C', '0', 'system:export:view', 'fa-solid fa-download', ''),
 (6, '操作日志', 0, 3, '/layout/logs', '/system/logs', 'C', '0', 'system:log:view', 'fa-solid fa-file-lines', ''),
 (7, '在线用户', 0, 4, '/layout/online', '/online', 'C', '0', 'system:online:view', 'fa-solid fa-user-lock', ''),
 (8, '个人中心', 0, 5, '/layout/profile', '/account/profile', 'C', '0', 'system:profile:view', 'fa-solid fa-user', ''),
@@ -35,7 +37,8 @@ INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `co
 (302, '权限编辑', 5, 2, '', '', 'F', '0', 'system:permission:edit', '#', ''),
 (303, '权限删除', 5, 3, '', '', 'F', '0', 'system:permission:remove', '#', ''),
 (401, '在线用户强退', 7, 1, '', '', 'F', '0', 'system:online:forceLogout', '#', ''),
-(501, '发送通知', 9, 1, '', '', 'F', '0', 'system:notification:send', '#', '');
+(501, '发送通知', 9, 1, '', '', 'F', '0', 'system:notification:send', '#', ''),
+(601, '操作日志导出', 6, 1, '', '', 'F', '0', 'system:log:export', '#', '');
 
 INSERT INTO `sys_role` (`id`, `role_name`, `role_key`, `role_sort`, `status`, `remark`) VALUES
 (1, '超级管理员', 'admin', 1, '0', '默认管理员角色'),
@@ -51,11 +54,11 @@ INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES
 (2, 2);
 
 INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9),
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
 (1, 101), (1, 102), (1, 103),
 (1, 201), (1, 202), (1, 203),
 (1, 301), (1, 302), (1, 303),
-(1, 401), (1, 501),
+(1, 401), (1, 501), (1, 601),
 (2, 1), (2, 8);
 
 INSERT INTO `sys_config` (`id`, `config_key`, `config_value`, `config_type`, `remark`) VALUES
