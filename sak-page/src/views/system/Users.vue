@@ -69,6 +69,9 @@
         <a-form-item field="email" label="邮箱">
           <a-input v-model="form.email" />
         </a-form-item>
+        <a-form-item field="wxPusherUid" label="WxPusher UID">
+          <a-input v-model="form.wxPusherUid" placeholder="用于 WxPusher 单用户推送" />
+        </a-form-item>
         <a-form-item field="phone" label="手机号">
           <a-input v-model="form.phone" />
         </a-form-item>
@@ -118,6 +121,7 @@ const columns = [
   { title: '用户名', dataIndex: 'username' },
   { title: '昵称', dataIndex: 'nickName' },
   { title: '邮箱', dataIndex: 'email' },
+  { title: 'WxPusher UID', dataIndex: 'wxPusherUid', ellipsis: true, tooltip: true },
   { title: '角色', slotName: 'roles' },
   { title: '状态', slotName: 'status', width: 100 },
   { title: '操作', slotName: 'operations', width: 160 }
@@ -128,6 +132,7 @@ const createDefaultForm = () => ({
   password: '',
   nickName: '',
   email: '',
+  wxPusherUid: '',
   phone: '',
   status: '0',
   remark: '',
@@ -184,6 +189,7 @@ const openEdit = (record: UserItem) => {
     password: '',
     nickName: record.nickName,
     email: record.email || '',
+    wxPusherUid: record.wxPusherUid || '',
     phone: record.phone || '',
     status: record.status,
     remark: record.remark || '',
@@ -219,6 +225,7 @@ const handleSubmit = async () => {
     password: form.password || undefined,
     nickName: form.nickName,
     email: form.email || undefined,
+    wxPusherUid: form.wxPusherUid || undefined,
     phone: form.phone || undefined,
     status: form.status,
     remark: form.remark || undefined,

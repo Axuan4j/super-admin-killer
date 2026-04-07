@@ -8,5 +8,6 @@ public class NotificationRecipientResponse {
     private String username;
     private String nickName;
     private String email;
+    private String wxPusherUid;
     private String status;
 }

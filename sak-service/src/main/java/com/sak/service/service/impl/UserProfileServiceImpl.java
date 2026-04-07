@@ -63,6 +63,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 user.getUsername(),
                 (user.getNickName() == null || user.getNickName().isBlank()) ? user.getUsername() : user.getNickName(),
                 user.getEmail(),
+                user.getWxPusherUid(),
                 user.getPhone(),
                 user.getAvatar(),
                 roles,
@@ -80,6 +81,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         }
         user.setNickName(request.getNickName().trim());
         user.setEmail(normalize(request.getEmail()));
+        user.setWxPusherUid(normalize(request.getWxPusherUid()));
         user.setPhone(normalize(request.getPhone()));
         user.setAvatar(normalize(request.getAvatar()));
         sysUserMapper.updateById(user);

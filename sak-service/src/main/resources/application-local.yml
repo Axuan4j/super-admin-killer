@@ -4,6 +4,17 @@ server:
 spring:
   application:
     name: super-killer-backend
+  mail:
+    host: ${MAIL.HOST:}
+    port: ${MAIL.PORT:587}
+    username: ${MAIL.USERNAME:}
+    password: ${MAIL.PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB.HOST:mysql.db.net}:${DB.PORT:3306}/SuperKillerAdmin?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
@@ -48,3 +59,10 @@ logging:
       sak:
         service:
           mapper: debug
+
+notification:
+  wxpusher:
+    enabled: ${WXPUSHER.ENABLED:false}
+    app-token: ${WXPUSHER.APP_TOKEN:}
+    base-url: ${WXPUSHER.BASE_URL:https://wxpusher.zjiecode.com}
+    content-type: ${WXPUSHER.CONTENT_TYPE:1}

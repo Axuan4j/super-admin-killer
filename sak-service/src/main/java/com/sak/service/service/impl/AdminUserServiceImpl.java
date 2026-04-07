@@ -131,6 +131,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         response.setUsername(user.getUsername());
         response.setNickName(user.getNickName());
         response.setEmail(user.getEmail());
+        response.setWxPusherUid(user.getWxPusherUid());
         response.setPhone(user.getPhone());
         response.setStatus(user.getStatus());
         response.setRemark(user.getRemark());
@@ -147,6 +148,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setUsername(request.getUsername());
         user.setNickName(request.getNickName());
         user.setEmail(request.getEmail());
+        user.setWxPusherUid(request.getWxPusherUid());
         user.setPhone(request.getPhone());
         user.setStatus(StringUtils.hasText(request.getStatus()) ? request.getStatus() : "0");
         user.setRemark(request.getRemark());

@@ -8,6 +8,7 @@ import java.util.List;
 public class NotificationSendRequest {
     private Boolean sendAll;
     private List<Long> userIds;
+    private List<String> channels;
     private String title;
     private String content;
 }

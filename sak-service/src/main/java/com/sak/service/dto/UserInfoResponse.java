@@ -14,6 +14,7 @@ public class UserInfoResponse {
     private String username;
     private String nickName;
     private String email;
+    private String wxPusherUid;
     private String phone;
     private String avatar;
     private List<String> roles;

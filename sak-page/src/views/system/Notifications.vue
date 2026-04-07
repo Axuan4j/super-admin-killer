@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <a-card title="通知管理">
+    <a-card title="消息推送中心">
       <template #extra>
         <a-space>
           <a-button :loading="loadingRecipients" @click="loadRecipients">刷新用户</a-button>
@@ -17,7 +17,7 @@
       </template>
 
       <a-alert type="info" show-icon class="info-banner">
-        在线用户会实时收到推送；离线用户会先写入站内消息，登录后可在通知中心查看。
+        可同时勾选站内信、邮件、WxPusher 多种渠道。站内信会实时刷新消息中心；邮件依赖邮箱配置；WxPusher 依赖用户 UID 和服务端 AppToken。
       </a-alert>
 
       <a-form :model="form" layout="vertical" class="notification-form">
@@ -46,6 +46,23 @@
           </div>
         </a-form-item>
 
+        <a-form-item label="推送渠道">
+          <a-checkbox-group v-model="form.channels" direction="vertical">
+            <a-checkbox value="SITE_MESSAGE">
+              站内信
+              <span class="channel-tip">写入消息中心，并通过 websocket 实时提示</span>
+            </a-checkbox>
+            <a-checkbox value="EMAIL">
+              邮件
+              <span class="channel-tip">仅向已配置邮箱的用户发送</span>
+            </a-checkbox>
+            <a-checkbox value="WXPUSHER">
+              WxPusher
+              <span class="channel-tip">仅向已配置 WxPusher UID 的用户发送</span>
+            </a-checkbox>
+          </a-checkbox-group>
+        </a-form-item>
+
         <a-form-item label="通知标题">
           <a-input v-model="form.title" :max-length="120" show-word-limit placeholder="请输入通知标题" />
         </a-form-item>
@@ -70,6 +87,14 @@
           </a-tag>
         </a-space>
       </a-card>
+
+      <a-card title="渠道预检查" size="small" class="recipient-card channel-preview-card">
+        <a-space wrap>
+          <a-tag color="arcoblue">目标用户 {{ targetRecipients.length }} 人</a-tag>
+          <a-tag color="green">邮箱已配置 {{ targetRecipientsWithEmailCount }} 人</a-tag>
+          <a-tag color="orange">WxPusher UID 已配置 {{ targetRecipientsWithWxPusherCount }} 人</a-tag>
+        </a-space>
+      </a-card>
     </a-card>
   </div>
 </template>
@@ -88,6 +113,7 @@ const recipients = ref<NotificationRecipient[]>([])
 const createDefaultForm = () => ({
   sendAll: true,
   userIds: [] as number[],
+  channels: ['SITE_MESSAGE'] as string[],
   title: '',
   content: ''
 })
@@ -98,6 +124,16 @@ const selectedRecipients = computed(() => {
   const selectedIds = new Set(form.userIds)
   return recipients.value.filter(user => selectedIds.has(user.id))
 })
+
+const targetRecipients = computed(() => (form.sendAll ? recipients.value : selectedRecipients.value))
+
+const targetRecipientsWithEmailCount = computed(() =>
+  targetRecipients.value.filter(user => !!user.email?.trim()).length
+)
+
+const targetRecipientsWithWxPusherCount = computed(() =>
+  targetRecipients.value.filter(user => !!user.wxPusherUid?.trim()).length
+)
 
 const resetForm = () => {
   Object.assign(form, createDefaultForm())
@@ -125,16 +161,21 @@ const handleSubmit = async () => {
     Message.warning('请选择至少一个接收用户')
     return
   }
+  if (form.channels.length === 0) {
+    Message.warning('请至少选择一种推送渠道')
+    return
+  }
 
   submitting.value = true
   try {
     const result = await sendNotification({
       sendAll: form.sendAll,
       userIds: form.sendAll ? undefined : form.userIds,
+      channels: form.channels,
       title: form.title.trim(),
       content: form.content.trim()
     })
-    Message.success(`通知发送成功，已投递 ${result.successCount} 人`)
+    Message.success(`推送完成：目标 ${result.recipientCount} 人，至少成功触达 ${result.successUserCount} 人`)
     resetForm()
   } finally {
     submitting.value = false
@@ -165,9 +206,19 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.channel-tip {
+  margin-left: 8px;
+  color: var(--app-muted-text, #86909c);
+  font-size: 12px;
+}
+
 .recipient-card {
   background: var(--app-panel-bg, #fbfdff);
   border: 1px solid var(--app-border-color, #e5e6eb);
+}
+
+.channel-preview-card {
+  margin-top: 16px;
 }
 
 .recipient-card :deep(.arco-card-header) {

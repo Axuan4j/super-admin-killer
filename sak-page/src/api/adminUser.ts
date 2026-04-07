@@ -15,6 +15,7 @@ export interface UserItem {
   username: string
   nickName: string
   email?: string
+  wxPusherUid?: string
   phone?: string
   status: string
   remark?: string
@@ -27,6 +28,7 @@ export interface UserSavePayload {
   password?: string
   nickName: string
   email?: string
+  wxPusherUid?: string
   phone?: string
   status: string
   remark?: string

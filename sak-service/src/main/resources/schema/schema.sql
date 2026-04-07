@@ -55,6 +55,7 @@ CREATE TABLE `sys_user`
     `password`    varchar(100)         DEFAULT '' COMMENT '密码',
     `nick_name`   varchar(30)          DEFAULT '' COMMENT '用户昵称',
     `email`       varchar(50)          DEFAULT '' COMMENT '用户邮箱',
+    `wx_pusher_uid` varchar(100)       DEFAULT '' COMMENT 'WxPusher UID',
     `phone`       varchar(11)          DEFAULT '' COMMENT '手机号码',
     `sex`         char(1)              DEFAULT '0' COMMENT '用户性别（0男 1女 2未知）',
     `avatar`      varchar(100)         DEFAULT '' COMMENT '头像地址',

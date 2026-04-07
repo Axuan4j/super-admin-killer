@@ -8,6 +8,7 @@ interface UserInfo {
   username: string
   nickName: string
   email?: string
+  wxPusherUid?: string
   phone?: string
   avatar?: string
   roles: string[]
@@ -92,13 +93,17 @@ export const useAuthStore = defineStore('auth', {
       await dictStore.loadDictionaries(true)
     },
 
-    async fetchUserInfo() {
+    async fetchUserInfo(force = false) {
       if (!this.accessToken) {
         return null
       }
 
-      if (this.userInfo) {
+      if (this.userInfo && !force) {
         return this.userInfo
+      }
+
+      if (force) {
+        this.userInfo = null
       }
 
       if (fetchUserInfoPromise) {
@@ -112,6 +117,7 @@ export const useAuthStore = defineStore('auth', {
             username: data.username || '',
             nickName: data.nickName || data.username || '',
             email: data.email,
+            wxPusherUid: data.wxPusherUid,
             phone: data.phone,
             avatar: data.avatar,
             roles: data.roles || [],

@@ -22,6 +22,7 @@
 
             <a-descriptions :column="2" bordered size="large">
               <a-descriptions-item label="邮箱">{{ authStore.userInfo?.email || '-' }}</a-descriptions-item>
+              <a-descriptions-item label="WxPusher UID">{{ authStore.userInfo?.wxPusherUid || '-' }}</a-descriptions-item>
               <a-descriptions-item label="手机号">{{ authStore.userInfo?.phone || '-' }}</a-descriptions-item>
               <a-descriptions-item label="角色" :span="2">
                 <a-space wrap>
@@ -47,6 +48,9 @@
             </a-form-item>
             <a-form-item label="邮箱">
               <a-input v-model="profileForm.email" />
+            </a-form-item>
+            <a-form-item label="WxPusher UID">
+              <a-input v-model="profileForm.wxPusherUid" />
             </a-form-item>
             <a-form-item label="手机号">
               <a-input v-model="profileForm.phone" />
@@ -131,6 +135,7 @@ const avatarInputRef = ref<HTMLInputElement | null>(null)
 const profileForm = reactive({
   nickName: '',
   email: '',
+  wxPusherUid: '',
   phone: '',
   avatar: ''
 })
@@ -144,6 +149,7 @@ const passwordForm = reactive({
 const syncProfileForm = () => {
   profileForm.nickName = authStore.userInfo?.nickName || ''
   profileForm.email = authStore.userInfo?.email || ''
+  profileForm.wxPusherUid = authStore.userInfo?.wxPusherUid || ''
   profileForm.phone = authStore.userInfo?.phone || ''
   profileForm.avatar = authStore.userInfo?.avatar || ''
 }
@@ -227,10 +233,11 @@ const handleProfileSubmit = async () => {
     await updateProfile({
       nickName: profileForm.nickName.trim(),
       email: profileForm.email.trim() || undefined,
+      wxPusherUid: profileForm.wxPusherUid.trim() || undefined,
       phone: profileForm.phone.trim() || undefined,
       avatar: profileForm.avatar.trim() || undefined
     })
-    await authStore.fetchUserInfo()
+    await authStore.fetchUserInfo(true)
     syncProfileForm()
     Message.success('个人资料已更新')
   } finally {
@@ -251,10 +258,11 @@ const handleAvatarUpload = async () => {
     await updateProfile({
       nickName: profileForm.nickName.trim() || authStore.userInfo?.nickName || authStore.userInfo?.username || '',
       email: profileForm.email.trim() || undefined,
+      wxPusherUid: profileForm.wxPusherUid.trim() || undefined,
       phone: profileForm.phone.trim() || undefined,
       avatar: result.avatarUrl
     })
-    await authStore.fetchUserInfo()
+    await authStore.fetchUserInfo(true)
     syncProfileForm()
     avatarModalVisible.value = false
     resetAvatarUpload()

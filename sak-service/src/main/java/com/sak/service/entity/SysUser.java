@@ -17,6 +17,7 @@ public class SysUser implements Serializable {
     private String password;
     private String nickName;
     private String email;
+    private String wxPusherUid;
     private String phone;
     private String sex;
     private String avatar;

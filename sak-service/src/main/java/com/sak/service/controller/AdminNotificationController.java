@@ -3,6 +3,7 @@ package com.sak.service.controller;
 import com.sak.service.common.Result;
 import com.sak.service.dto.NotificationRecipientResponse;
 import com.sak.service.dto.NotificationSendRequest;
+import com.sak.service.dto.NotificationSendResponse;
 import com.sak.service.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/system/notifications")
 @RequiredArgsConstructor
@@ -31,8 +30,7 @@ public class AdminNotificationController {
 
     @PostMapping("/send")
     @PreAuthorize("hasAuthority('system:notification:send')")
-    public Result<Map<String, Integer>> sendNotification(Authentication authentication, @RequestBody NotificationSendRequest request) {
-        int successCount = adminNotificationService.sendNotification(authentication, request);
-        return Result.success(Map.of("successCount", successCount));
+    public Result<NotificationSendResponse> sendNotification(Authentication authentication, @RequestBody NotificationSendRequest request) {
+        return Result.success(adminNotificationService.sendNotification(authentication, request));
     }
 }

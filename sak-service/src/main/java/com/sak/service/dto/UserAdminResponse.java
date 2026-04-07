@@ -10,6 +10,7 @@ public class UserAdminResponse {
     private String username;
     private String nickName;
     private String email;
+    private String wxPusherUid;
     private String phone;
     private String status;
     private String remark;

@@ -5,18 +5,23 @@ export interface NotificationRecipient {
   username: string
   nickName: string
   email?: string
+  wxPusherUid?: string
   status: string
 }
 
 export interface SendNotificationPayload {
   sendAll: boolean
   userIds?: number[]
+  channels: string[]
   title: string
   content: string
 }
 
 export interface SendNotificationResult {
-  successCount: number
+  recipientCount: number
+  successUserCount: number
+  channelSuccessCounts: Record<string, number>
+  channelSkipCounts: Record<string, number>
 }
 
 export const getNotificationRecipients = () =>

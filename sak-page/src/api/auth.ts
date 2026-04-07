@@ -24,6 +24,7 @@ export interface UserInfoResponse {
   username: string
   nickName: string
   email?: string
+  wxPusherUid?: string
   phone?: string
   avatar?: string
   roles: string[]
@@ -33,6 +34,7 @@ export interface UserInfoResponse {
 export interface UpdateProfilePayload {
   nickName: string
   email?: string
+  wxPusherUid?: string
   phone?: string
   avatar?: string
 }
