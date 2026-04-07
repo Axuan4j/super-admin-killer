@@ -1,0 +1,50 @@
+server:
+  port: ${SERVER.PORT:8080}
+
+spring:
+  application:
+    name: super-killer-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB.HOST:mysql.app.net}:${DB.PORT:23306}/SuperKillerAdmin?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${DB.USERNAME:xwu36}
+    password: ${DB.PASSWORD:Wu121380..}
+  data:
+    redis:
+      host: ${REDIS.HOST:redis.app.net}
+      port: ${REDIS.PORT:26379}
+      password:
+      database: 1
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+jwt:
+  secret: ${JWT.SECRET:3MeKau+j794vsIX2jLgLaWYLAzd39ugtcNfNR5ScJX0=}
+  access-token-expiration: ${JWT.AT.EXPIRE:10m}    # 10分钟
+  refresh-token-expiration: ${JWT.RT.EXPIRE:7d} # 7天
+
+storage:
+  root-dir: ./storage
+  avatar-dir: avatars
+  access-path: /storage/
+
+cache:
+  multilevel:
+    local-expire-after-write: 5m
+    local-maximum-size: 1000
+    redis-time-to-live: 30m
+    redis-key-prefix: "sak:cache:"
+
+logging:
+  level:
+    root: info
+    com:
+      sak:
+        service:
+          mapper: debug
