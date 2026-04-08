@@ -9,6 +9,8 @@ DELETE FROM `sys_role_menu`;
 DELETE FROM `sys_user_role`;
 DELETE FROM `sys_export_record`;
 DELETE FROM `sys_file_record`;
+DELETE FROM `sys_scheduled_task_type`;
+DELETE FROM `sys_scheduled_task`;
 DELETE FROM `sys_site_message`;
 DELETE FROM `sys_login_log`;
 DELETE FROM `sys_oper_log`;
@@ -28,6 +30,7 @@ INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `co
 (10, '下载中心', 2, 5, '/layout/system/downloads', '/system/downloads', 'C', '0', 'system:export:view', 'fa-solid fa-download', ''),
 (13, '硬件监控', 2, 6, '/layout/system/monitor', '/system/monitor', 'C', '0', 'system:monitor:view', 'fa-solid fa-server', ''),
 (14, '文件中心', 2, 7, '/layout/system/files', '/system/files', 'C', '0', 'system:file:view', 'fa-solid fa-folder-tree', ''),
+(15, '调度中心', 2, 8, '/layout/system/schedules', '/system/schedules', 'C', '0', 'system:schedule:view', 'fa-solid fa-clock', ''),
 (11, '审计中心', 0, 3, '/layout/audit', NULL, 'M', '0', NULL, 'fa-solid fa-shield-halved', '审计中心目录'),
 (6, '操作日志', 11, 1, '/layout/audit/logs', '/system/logs', 'C', '0', 'system:log:view', 'fa-solid fa-file-lines', ''),
 (12, '登录日志', 11, 2, '/layout/audit/login-logs', '/system/loginlogs', 'C', '0', 'system:login-log:view', 'fa-solid fa-right-to-bracket', ''),
@@ -46,7 +49,11 @@ INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `co
 (501, '发送通知', 9, 1, '', '', 'F', '0', 'system:notification:send', '#', ''),
 (601, '操作日志导出', 6, 1, '', '', 'F', '0', 'system:log:export', '#', ''),
 (701, '文件上传', 14, 1, '', '', 'F', '0', 'system:file:upload', '#', ''),
-(702, '文件删除', 14, 2, '', '', 'F', '0', 'system:file:remove', '#', '');
+(702, '文件删除', 14, 2, '', '', 'F', '0', 'system:file:remove', '#', ''),
+(801, '任务新增', 15, 1, '', '', 'F', '0', 'system:schedule:add', '#', ''),
+(802, '任务编辑', 15, 2, '', '', 'F', '0', 'system:schedule:edit', '#', ''),
+(803, '任务删除', 15, 3, '', '', 'F', '0', 'system:schedule:remove', '#', ''),
+(804, '任务执行', 15, 4, '', '', 'F', '0', 'system:schedule:run', '#', '');
 
 INSERT INTO `sys_role` (`id`, `role_name`, `role_key`, `role_sort`, `status`, `remark`) VALUES
 (1, '超级管理员', 'admin', 1, '0', '默认管理员角色'),
@@ -62,11 +69,11 @@ INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES
 (2, 2);
 
 INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14),
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15),
 (1, 101), (1, 102), (1, 103),
 (1, 201), (1, 202), (1, 203),
 (1, 301), (1, 302), (1, 303),
-(1, 401), (1, 501), (1, 601), (1, 701), (1, 702),
+(1, 401), (1, 501), (1, 601), (1, 701), (1, 702), (1, 801), (1, 802), (1, 803), (1, 804),
 (2, 1), (2, 8);
 
 INSERT INTO `sys_config` (`id`, `config_key`, `config_value`, `config_type`, `remark`) VALUES

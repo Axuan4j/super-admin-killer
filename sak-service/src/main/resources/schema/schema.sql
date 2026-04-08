@@ -9,6 +9,8 @@ DROP TABLE IF EXISTS `sys_role_menu`;
 DROP TABLE IF EXISTS `sys_user_role`;
 DROP TABLE IF EXISTS `sys_export_record`;
 DROP TABLE IF EXISTS `sys_file_record`;
+DROP TABLE IF EXISTS `sys_scheduled_task_type`;
+DROP TABLE IF EXISTS `sys_scheduled_task`;
 DROP TABLE IF EXISTS `sys_site_message`;
 DROP TABLE IF EXISTS `sys_login_log`;
 DROP TABLE IF EXISTS `sys_oper_log`;
@@ -184,6 +186,57 @@ CREATE TABLE `sys_file_record`
     KEY `idx_file_record_create_time` (`create_time`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='文件中心记录表';
+
+CREATE TABLE `sys_scheduled_task`
+(
+    `id`                   bigint        NOT NULL AUTO_INCREMENT COMMENT '调度任务ID',
+    `task_name`            varchar(120)  NOT NULL COMMENT '任务名称',
+    `task_type`            varchar(100)  NOT NULL COMMENT '任务类型',
+    `execution_type`       varchar(30)   NOT NULL DEFAULT 'CRON' COMMENT '执行方式',
+    `interval_value`       int           DEFAULT NULL COMMENT '间隔数值',
+    `interval_unit`        varchar(30)   DEFAULT NULL COMMENT '间隔单位',
+    `cron_expression`      varchar(120)  DEFAULT NULL COMMENT 'Cron表达式',
+    `status`               varchar(30)   NOT NULL DEFAULT 'PAUSED' COMMENT '任务状态',
+    `task_summary`         varchar(500)  DEFAULT NULL COMMENT '任务摘要',
+    `task_config_json`     varchar(4000) NOT NULL COMMENT '任务配置JSON',
+    `notify_channels_json` varchar(1000) DEFAULT NULL COMMENT '通知渠道JSON',
+    `notify_user_ids_json` varchar(2000) DEFAULT NULL COMMENT '通知用户JSON',
+    `success_notify`       tinyint(1)    NOT NULL DEFAULT '0' COMMENT '成功通知',
+    `failure_notify`       tinyint(1)    NOT NULL DEFAULT '1' COMMENT '失败通知',
+    `run_count`            bigint        NOT NULL DEFAULT 0 COMMENT '执行次数',
+    `operator`             varchar(100)  DEFAULT NULL COMMENT '维护人',
+    `remark`               varchar(500)  DEFAULT NULL COMMENT '备注',
+    `last_run_time`        datetime      DEFAULT NULL COMMENT '最近执行时间',
+    `next_run_time`        datetime      DEFAULT NULL COMMENT '下次执行时间',
+    `last_success_time`    datetime      DEFAULT NULL COMMENT '最近成功时间',
+    `last_failure_time`    datetime      DEFAULT NULL COMMENT '最近失败时间',
+    `last_error_message`   varchar(1000) DEFAULT NULL COMMENT '最近错误信息',
+    `create_time`          datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`          datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_scheduled_task_execution_type` (`execution_type`),
+    KEY `idx_scheduled_task_status` (`status`),
+    KEY `idx_scheduled_task_type` (`task_type`),
+    KEY `idx_scheduled_task_next_run_time` (`next_run_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='调度任务表';
+
+CREATE TABLE `sys_scheduled_task_type`
+(
+    `id`               bigint        NOT NULL AUTO_INCREMENT COMMENT '任务类型ID',
+    `task_type`        varchar(100)  NOT NULL COMMENT '任务类型编码',
+    `task_name`        varchar(120)  NOT NULL COMMENT '任务类型名称',
+    `description`      varchar(500)  DEFAULT NULL COMMENT '类型描述',
+    `form_schema_json` varchar(8000) DEFAULT NULL COMMENT '动态表单定义JSON',
+    `built_in`         tinyint(1)    NOT NULL DEFAULT '1' COMMENT '是否内置',
+    `enabled`          tinyint(1)    NOT NULL DEFAULT '1' COMMENT '是否启用',
+    `create_time`      datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`      datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_scheduled_task_type` (`task_type`),
+    KEY `idx_scheduled_task_type_enabled` (`enabled`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='调度任务类型表';
 
 CREATE TABLE `sys_login_log`
 (
