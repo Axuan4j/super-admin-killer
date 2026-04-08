@@ -23,6 +23,8 @@
         <spring-boot.version>3.4.3</spring-boot.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
         <mybatis-plus-jsqlparser.version>3.5.12</mybatis-plus-jsqlparser.version>
+        <oshi.version>6.11.0</oshi.version>
+        <ip2region.version>3.3.6</ip2region.version>
         <jjwt.version>0.12.5</jjwt.version>
         <bizlog-sdk.version>3.0.6</bizlog-sdk.version>
         <caffeine.version>3.1.8</caffeine.version>
@@ -51,6 +53,18 @@
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-jsqlparser</artifactId>
                 <version>${mybatis-plus-jsqlparser.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.lionsoul</groupId>
+                <artifactId>ip2region</artifactId>
+                <version>${ip2region.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>${oshi.version}</version>
             </dependency>
 
             <dependency>

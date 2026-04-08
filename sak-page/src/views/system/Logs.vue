@@ -131,11 +131,13 @@ const loadData = async () => {
       logType: logTypeKeyword.value.trim() || undefined,
       action: actionKeyword.value.trim() || undefined,
       success: successFilter.value,
-      current: currentPage.value,
-      size: pageSize.value
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
     })
     logs.value = page.records
     total.value = page.total
+    currentPage.value = page.pageNum
+    pageSize.value = page.pageSize
   } finally {
     loading.value = false
   }

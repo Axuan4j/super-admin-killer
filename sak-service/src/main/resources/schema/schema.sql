@@ -8,7 +8,9 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `sys_role_menu`;
 DROP TABLE IF EXISTS `sys_user_role`;
 DROP TABLE IF EXISTS `sys_export_record`;
+DROP TABLE IF EXISTS `sys_file_record`;
 DROP TABLE IF EXISTS `sys_site_message`;
+DROP TABLE IF EXISTS `sys_login_log`;
 DROP TABLE IF EXISTS `sys_oper_log`;
 DROP TABLE IF EXISTS `sys_dict_item`;
 DROP TABLE IF EXISTS `sys_config`;
@@ -162,6 +164,46 @@ CREATE TABLE `sys_export_record`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='导出记录表';
 
+CREATE TABLE `sys_file_record`
+(
+    `id`           bigint        NOT NULL AUTO_INCREMENT COMMENT '文件记录ID',
+    `biz_type`     varchar(100)  NOT NULL DEFAULT 'COMMON' COMMENT '业务类型',
+    `file_name`    varchar(255)  NOT NULL COMMENT '原始文件名',
+    `storage_name` varchar(255)  NOT NULL COMMENT '存储文件名',
+    `file_path`    varchar(500)  NOT NULL COMMENT '文件相对路径',
+    `content_type` varchar(200)  DEFAULT NULL COMMENT '文件类型',
+    `file_ext`     varchar(50)   DEFAULT NULL COMMENT '文件扩展名',
+    `file_size`    bigint        NOT NULL DEFAULT 0 COMMENT '文件大小',
+    `operator`     varchar(100)  DEFAULT NULL COMMENT '上传人',
+    `remark`       varchar(500)  DEFAULT NULL COMMENT '备注',
+    `create_time`  datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`  datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_file_record_biz_type` (`biz_type`),
+    KEY `idx_file_record_operator` (`operator`),
+    KEY `idx_file_record_create_time` (`create_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='文件中心记录表';
+
+CREATE TABLE `sys_login_log`
+(
+    `id`             bigint        NOT NULL AUTO_INCREMENT COMMENT '登录日志ID',
+    `username`       varchar(100)  DEFAULT NULL COMMENT '登录账号',
+    `login_ip`       varchar(64)   DEFAULT NULL COMMENT '登录IP',
+    `login_location` varchar(255)  DEFAULT NULL COMMENT '登录属地',
+    `user_agent`     varchar(1000) DEFAULT NULL COMMENT '用户代理',
+    `browser`        varchar(100)  DEFAULT NULL COMMENT '浏览器',
+    `os`             varchar(100)  DEFAULT NULL COMMENT '操作系统',
+    `status`         tinyint(1)    NOT NULL DEFAULT '1' COMMENT '登录状态（1成功 0失败）',
+    `message`        varchar(500)  DEFAULT NULL COMMENT '提示消息',
+    `login_time`     datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_login_log_username` (`username`),
+    KEY `idx_login_log_ip` (`login_ip`),
+    KEY `idx_login_log_login_time` (`login_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='登录日志表';
+
 CREATE TABLE `sys_oper_log`
 (
     `id`             bigint        NOT NULL AUTO_INCREMENT COMMENT '日志ID',
@@ -185,30 +227,5 @@ CREATE TABLE `sys_oper_log`
     KEY `idx_oper_log_create_time` (`create_time`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='操作日志表';
-
-
-
--- 站内消息表
--- auto-generated definition
-create table sys_site_message
-(
-    id          bigint auto_increment comment '站内消息ID'
-        primary key,
-    user_id     bigint                                not null comment '接收用户ID',
-    title       varchar(120)                          not null comment '消息标题',
-    content     varchar(1000)                         not null comment '消息内容',
-    sender_name varchar(50) default '系统'            null comment '发送人',
-    read_status tinyint(1)  default 0                 not null comment '读取状态（0未读 1已读）',
-    read_time   datetime                              null comment '读取时间',
-    create_time datetime    default CURRENT_TIMESTAMP not null comment '创建时间',
-    update_time datetime    default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间'
-)
-    comment '站内消息表';
-
-create index idx_site_message_read_status
-    on sys_site_message (read_status);
-
-create index idx_site_message_user_id
-    on sys_site_message (user_id);
 
 SET FOREIGN_KEY_CHECKS = 1;

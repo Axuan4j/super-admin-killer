@@ -18,7 +18,7 @@ export interface RoleSavePayload {
   remark?: string
 }
 
-export const getRoles = (params: { keyword?: string; status?: string; current: number; size: number }) =>
+export const getRoles = (params: { keyword?: string; status?: string; pageNum: number; pageSize: number; orderField?: string; orderDirection?: 'asc' | 'desc'; searchCount?: boolean }) =>
   request.get<unknown, PageResponse<RoleItem>>('/system/roles', { params })
 export const createRole = (data: RoleSavePayload) => request.post<unknown, RoleItem>('/system/roles', data)
 export const updateRole = (id: number, data: RoleSavePayload) => request.put<unknown, RoleItem>(`/system/roles/${id}`, data)

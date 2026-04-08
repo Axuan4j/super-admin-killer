@@ -25,8 +25,11 @@ export const getOperLogs = (params: {
   logType?: string
   action?: string
   success?: number
-  current: number
-  size: number
+  pageNum: number
+  pageSize: number
+  orderField?: string
+  orderDirection?: 'asc' | 'desc'
+  searchCount?: boolean
 }) =>
   request.get<unknown, PageResponse<OperLogItem>>('/system/logs', { params })
 

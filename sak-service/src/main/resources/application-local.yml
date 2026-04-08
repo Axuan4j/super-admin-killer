@@ -66,3 +66,10 @@ notification:
     app-token: ${WXPUSHER.APP_TOKEN:}
     base-url: ${WXPUSHER.BASE_URL:https://wxpusher.zjiecode.com}
     content-type: ${WXPUSHER.CONTENT_TYPE:1}
+
+ip2region:
+  enabled: ${IP2REGION.ENABLED:true}
+  ipv4-db: ${IP2REGION.IPV4_DB:./ip2region/ip2region_v4.xdb}
+  ipv6-db: ${IP2REGION.IPV6_DB:}
+  ipv4-classpath: ${IP2REGION.IPV4_CLASSPATH:}
+  ipv6-classpath: ${IP2REGION.IPV6_CLASSPATH:}

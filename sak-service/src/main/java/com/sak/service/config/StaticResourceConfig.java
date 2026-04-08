@@ -41,12 +41,11 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     }
 
     public Path getExportStorageDir() {
-        Path root = getStorageRootDir();
-        Path exportDir = root.resolve("exports").normalize();
-        if (!exportDir.startsWith(root)) {
-            throw new IllegalStateException("Export storage directory is outside the configured root directory");
-        }
-        return exportDir;
+        return resolveStorageSubDirectory("exports", "Export storage directory is outside the configured root directory");
+    }
+
+    public Path getFileCenterStorageDir() {
+        return resolveStorageSubDirectory(storageProperties.getFileDir(), "File center storage directory is outside the configured root directory");
     }
 
     public String getAvatarAccessPrefix() {
@@ -58,15 +57,25 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     }
 
     public Path createExportFile(String relativePath) {
+        return createStorageFile(relativePath, "Export file path is outside the configured root directory", "Failed to initialize export storage directory");
+    }
+
+    public Path createFileCenterFile(String relativePath) {
+        String fileDir = trimSlashes(storageProperties.getFileDir());
+        String normalizedRelativePath = trimSlashes(relativePath);
+        String combinedPath = fileDir.isEmpty() ? normalizedRelativePath : fileDir + "/" + normalizedRelativePath;
+        return createStorageFile(combinedPath, "File center path is outside the configured root directory", "Failed to initialize file center storage directory");
+    }
+
+    public String getFileCenterAccessPrefix() {
+        return normalizeAccessPath(storageProperties.getAccessPath()) + trimSlashes(storageProperties.getFileDir()) + "/";
+    }
+
+    public Path resolveStorageRelativePath(String relativePath) {
         Path root = getStorageRootDir();
         Path normalized = root.resolve(trimSlashes(relativePath)).normalize();
         if (!normalized.startsWith(root)) {
-            throw new IllegalStateException("Export file path is outside the configured root directory");
-        }
-        try {
-            Files.createDirectories(normalized.getParent());
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize export storage directory", e);
+            throw new IllegalStateException("Storage file path is outside the configured root directory");
         }
         return normalized;
     }
@@ -79,9 +88,32 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         try {
             Files.createDirectories(getAvatarStorageDir());
             Files.createDirectories(getExportStorageDir());
+            Files.createDirectories(getFileCenterStorageDir());
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize local storage directory", e);
         }
+    }
+
+    private Path resolveStorageSubDirectory(String relativeDir, String outsideRootMessage) {
+        Path root = getStorageRootDir();
+        Path targetDir = root.resolve(trimSlashes(relativeDir)).normalize();
+        if (!targetDir.startsWith(root)) {
+            throw new IllegalStateException(outsideRootMessage);
+        }
+        return targetDir;
+    }
+
+    private Path createStorageFile(String relativePath, String outsideRootMessage, String initializationErrorMessage) {
+        Path normalized = resolveStorageRelativePath(relativePath);
+        if (!normalized.startsWith(getStorageRootDir())) {
+            throw new IllegalStateException(outsideRootMessage);
+        }
+        try {
+            Files.createDirectories(normalized.getParent());
+        } catch (Exception e) {
+            throw new IllegalStateException(initializationErrorMessage, e);
+        }
+        return normalized;
     }
 
     private String normalizeAccessPath(String accessPath) {

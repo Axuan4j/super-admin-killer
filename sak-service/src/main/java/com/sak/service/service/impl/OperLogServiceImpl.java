@@ -2,45 +2,54 @@ package com.sak.service.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sak.service.dto.OperLogQueryRequest;
 import com.sak.service.dto.OperLogResponse;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.entity.SysOperLog;
 import com.sak.service.mapper.SysOperLogMapper;
 import com.sak.service.service.OperLogService;
+import com.sak.service.util.PageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class OperLogServiceImpl implements OperLogService {
 
+    private static final Map<String, String> OPER_LOG_SORT_FIELDS = new LinkedHashMap<>();
+
+    static {
+        OPER_LOG_SORT_FIELDS.put("id", "id");
+        OPER_LOG_SORT_FIELDS.put("operator", "operator");
+        OPER_LOG_SORT_FIELDS.put("logType", "log_type");
+        OPER_LOG_SORT_FIELDS.put("success", "success");
+        OPER_LOG_SORT_FIELDS.put("createTime", "create_time");
+    }
+
     private final SysOperLogMapper sysOperLogMapper;
 
     @Override
-    public PageResponse<OperLogResponse> listLogs(String operator, String logType, String action, Integer success, long current, long size) {
-        LambdaQueryWrapper<SysOperLog> queryWrapper = new LambdaQueryWrapper<SysOperLog>()
-                .orderByDesc(SysOperLog::getId);
-        if (StringUtils.hasText(operator)) {
-            queryWrapper.like(SysOperLog::getOperator, operator);
+    public PageResponse<OperLogResponse> listLogs(OperLogQueryRequest request) {
+        LambdaQueryWrapper<SysOperLog> queryWrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(request.getOperator())) {
+            queryWrapper.like(SysOperLog::getOperator, request.getOperator());
         }
-        if (StringUtils.hasText(logType)) {
-            queryWrapper.like(SysOperLog::getLogType, logType);
+        if (StringUtils.hasText(request.getLogType())) {
+            queryWrapper.like(SysOperLog::getLogType, request.getLogType());
         }
-        if (StringUtils.hasText(action)) {
-            queryWrapper.like(SysOperLog::getAction, action);
+        if (StringUtils.hasText(request.getAction())) {
+            queryWrapper.like(SysOperLog::getAction, request.getAction());
         }
-        if (success != null) {
-            queryWrapper.eq(SysOperLog::getSuccess, success);
+        if (request.getSuccess() != null) {
+            queryWrapper.eq(SysOperLog::getSuccess, request.getSuccess());
         }
 
-        Page<SysOperLog> page = sysOperLogMapper.selectPage(new Page<>(current, size), queryWrapper);
-        return new PageResponse<>(
-                page.getRecords().stream().map(this::toResponse).toList(),
-                page.getTotal(),
-                page.getCurrent(),
-                page.getSize()
-        );
+        Page<SysOperLog> page = sysOperLogMapper.selectPage(PageUtils.buildPage(request, OPER_LOG_SORT_FIELDS, "id", "desc"), queryWrapper);
+        return PageUtils.toResponse(page, page.getRecords().stream().map(this::toResponse).toList(), request);
     }
 
     private OperLogResponse toResponse(SysOperLog log) {

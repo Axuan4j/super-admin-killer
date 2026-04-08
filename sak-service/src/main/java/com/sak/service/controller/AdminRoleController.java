@@ -2,6 +2,7 @@ package com.sak.service.controller;
 
 import com.sak.service.common.Result;
 import com.sak.service.dto.PageResponse;
+import com.sak.service.dto.RoleQueryRequest;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.RoleSaveRequest;
 import com.sak.service.service.AdminRoleService;
@@ -20,13 +21,8 @@ public class AdminRoleController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('system:role:view')")
-    public Result<PageResponse<RoleOptionResponse>> listRoles(
-            @RequestParam(name = "keyword", required = false) String keyword,
-            @RequestParam(name = "status", required = false) String status,
-            @RequestParam(name = "current", defaultValue = "1") long current,
-            @RequestParam(name = "size", defaultValue = "10") long size
-    ) {
-        return Result.success(adminRoleService.listRoles(keyword, status, current, size));
+    public Result<PageResponse<RoleOptionResponse>> listRoles(RoleQueryRequest request) {
+        return Result.success(adminRoleService.listRoles(request));
     }
 
     @PostMapping

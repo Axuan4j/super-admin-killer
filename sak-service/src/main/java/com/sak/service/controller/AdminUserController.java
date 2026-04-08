@@ -4,6 +4,7 @@ import com.sak.service.common.Result;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.UserAdminResponse;
+import com.sak.service.dto.UserQueryRequest;
 import com.sak.service.dto.UserSaveRequest;
 import com.sak.service.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +22,8 @@ public class AdminUserController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('system:user:view')")
-    public Result<PageResponse<UserAdminResponse>> listUsers(
-            @RequestParam(name = "keyword", required = false) String keyword,
-            @RequestParam(name = "status", required = false) String status,
-            @RequestParam(name = "current", defaultValue = "1") long current,
-            @RequestParam(name = "size", defaultValue = "10") long size
-    ) {
-        return Result.success(adminUserService.listUsers(keyword, status, current, size));
+    public Result<PageResponse<UserAdminResponse>> listUsers(UserQueryRequest request) {
+        return Result.success(adminUserService.listUsers(request));
     }
 
     @GetMapping("/role-options")

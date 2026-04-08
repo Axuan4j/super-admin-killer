@@ -67,7 +67,7 @@
           <a-button
             v-if="canViewLogs"
             type="text"
-            @click="goToMenuPermission('system:log:view', '/layout/logs')"
+            @click="goToMenuPermission('system:log:view', '/layout/audit/logs')"
           >
             查看日志
           </a-button>
@@ -340,7 +340,7 @@ const loadDashboardData = async () => {
 
   if (canViewLogs.value) {
     tasks.push(
-      getOperLogs({ current: 1, size: 5 }).then(result => {
+      getOperLogs({ pageNum: 1, pageSize: 5 }).then(result => {
         logTotal.value = result.total
         recentLogs.value = result.records
       })

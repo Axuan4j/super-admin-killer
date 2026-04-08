@@ -3,6 +3,7 @@ package com.sak.service.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sak.service.common.Result;
 import com.sak.service.dto.LoginResponse;
+import com.sak.service.service.LoginLogService;
 import com.sak.service.service.TokenService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,12 +22,14 @@ import java.util.Map;
 public class AuthenticationSuccessHandlerImpl implements AuthenticationSuccessHandler {
 
     private final TokenService tokenService;
+    private final LoginLogService loginLogService;
     private final ObjectMapper objectMapper;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         Map<String, String> tokens = tokenService.generateTokenAndCache(userDetails, request);
+        loginLogService.recordSuccess(userDetails.getUsername(), request);
 
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_OK);

@@ -17,5 +17,5 @@ export interface ExportRecordItem {
   createTime?: string
 }
 
-export const getExportRecords = (params: { bizType?: string; status?: string; current: number; size: number }) =>
+export const getExportRecords = (params: { bizType?: string; status?: string; pageNum: number; pageSize: number; orderField?: string; orderDirection?: 'asc' | 'desc'; searchCount?: boolean }) =>
   request.get<unknown, PageResponse<ExportRecordItem>>('/system/export-records', { params })

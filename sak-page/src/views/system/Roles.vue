@@ -139,13 +139,15 @@ const loadData = async () => {
       getRoles({
         keyword: keyword.value || undefined,
         status: statusFilter.value || undefined,
-        current: currentPage.value,
-        size: pageSize.value
+        pageNum: currentPage.value,
+        pageSize: pageSize.value
       }),
       getManageMenus({})
     ])
     roles.value = rolePage.records
     total.value = rolePage.total
+    currentPage.value = rolePage.pageNum
+    pageSize.value = rolePage.pageSize
     allMenus.value = menus
   } finally {
     loading.value = false

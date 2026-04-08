@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mzt.logapi.starter.annotation.LogRecord;
 import com.sak.service.dto.PageResponse;
+import com.sak.service.dto.RoleQueryRequest;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.RoleSaveRequest;
 import com.sak.service.entity.SysRole;
@@ -11,6 +12,7 @@ import com.sak.service.mapper.SysRoleMapper;
 import com.sak.service.service.AdminRoleService;
 import com.sak.service.service.RoleMenuRelationService;
 import com.sak.service.service.UserRoleRelationService;
+import com.sak.service.util.PageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -20,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -29,6 +33,15 @@ public class AdminRoleServiceImpl implements AdminRoleService {
 
     private static final String ROLE_MENU_IDS_CACHE = "role-menu-ids";
     private static final String CURRENT_USER_MENUS_CACHE = "current-user-menus";
+    private static final Map<String, String> ROLE_SORT_FIELDS = new LinkedHashMap<>();
+
+    static {
+        ROLE_SORT_FIELDS.put("id", "id");
+        ROLE_SORT_FIELDS.put("roleName", "role_name");
+        ROLE_SORT_FIELDS.put("roleKey", "role_key");
+        ROLE_SORT_FIELDS.put("roleSort", "role_sort");
+        ROLE_SORT_FIELDS.put("status", "status");
+    }
 
     private final SysRoleMapper sysRoleMapper;
     private final UserRoleRelationService userRoleRelationService;
@@ -36,25 +49,23 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     private final CacheManager cacheManager;
 
     @Override
-    public PageResponse<RoleOptionResponse> listRoles(String keyword, String status, long current, long size) {
-        LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<SysRole>()
-                .orderByAsc(SysRole::getRoleSort)
-                .orderByAsc(SysRole::getId);
-        if (StringUtils.hasText(keyword)) {
+    public PageResponse<RoleOptionResponse> listRoles(RoleQueryRequest request) {
+        LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(request.getKeyword())) {
             queryWrapper.and(wrapper -> wrapper
-                    .like(SysRole::getRoleName, keyword)
+                    .like(SysRole::getRoleName, request.getKeyword())
                     .or()
-                    .like(SysRole::getRoleKey, keyword));
+                    .like(SysRole::getRoleKey, request.getKeyword()));
         }
-        if (StringUtils.hasText(status)) {
-            queryWrapper.eq(SysRole::getStatus, status);
+        if (StringUtils.hasText(request.getStatus())) {
+            queryWrapper.eq(SysRole::getStatus, request.getStatus());
         }
 
-        Page<SysRole> page = sysRoleMapper.selectPage(new Page<>(current, size), queryWrapper);
+        Page<SysRole> page = sysRoleMapper.selectPage(PageUtils.buildPage(request, ROLE_SORT_FIELDS, "role_sort", "asc"), queryWrapper);
         List<RoleOptionResponse> records = page.getRecords().stream()
                 .map(role -> new RoleOptionResponse(role.getId(), role.getRoleName(), role.getRoleKey(), role.getRoleSort(), role.getStatus(), role.getRemark()))
                 .toList();
-        return new PageResponse<>(records, page.getTotal(), page.getCurrent(), page.getSize());
+        return PageUtils.toResponse(page, records, request);
     }
 
     @Override

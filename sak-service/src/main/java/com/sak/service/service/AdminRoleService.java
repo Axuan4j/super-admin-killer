@@ -2,12 +2,13 @@ package com.sak.service.service;
 
 import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleOptionResponse;
+import com.sak.service.dto.RoleQueryRequest;
 import com.sak.service.dto.RoleSaveRequest;
 
 import java.util.List;
 
 public interface AdminRoleService {
-    PageResponse<RoleOptionResponse> listRoles(String keyword, String status, long current, long size);
+    PageResponse<RoleOptionResponse> listRoles(RoleQueryRequest request);
 
     RoleOptionResponse createRole(RoleSaveRequest request);
 

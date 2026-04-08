@@ -8,5 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class LocalStorageProperties {
     private String rootDir = "./storage";
     private String avatarDir = "avatars";
+    private String fileDir = "files";
     private String accessPath = "/storage/";
 }

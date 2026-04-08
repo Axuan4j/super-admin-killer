@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.UserAdminResponse;
+import com.sak.service.dto.UserQueryRequest;
 import com.sak.service.dto.UserSaveRequest;
 import com.sak.service.entity.SysRole;
 import com.sak.service.entity.SysUser;
@@ -13,6 +14,7 @@ import com.sak.service.mapper.SysRoleMapper;
 import com.sak.service.mapper.SysUserMapper;
 import com.sak.service.service.AdminUserService;
 import com.sak.service.service.UserRoleRelationService;
+import com.sak.service.util.PageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,11 +25,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
+
+    private static final Map<String, String> USER_SORT_FIELDS = new LinkedHashMap<>();
+
+    static {
+        USER_SORT_FIELDS.put("id", "id");
+        USER_SORT_FIELDS.put("username", "username");
+        USER_SORT_FIELDS.put("nickName", "nick_name");
+        USER_SORT_FIELDS.put("email", "email");
+        USER_SORT_FIELDS.put("status", "status");
+    }
 
     private final SysUserMapper sysUserMapper;
     private final SysRoleMapper sysRoleMapper;
@@ -35,25 +48,24 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public PageResponse<UserAdminResponse> listUsers(String keyword, String status, long current, long size) {
-        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<SysUser>()
-                .orderByAsc(SysUser::getId);
-        if (StringUtils.hasText(keyword)) {
+    public PageResponse<UserAdminResponse> listUsers(UserQueryRequest request) {
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(request.getKeyword())) {
             queryWrapper.and(wrapper -> wrapper
-                    .like(SysUser::getUsername, keyword)
+                    .like(SysUser::getUsername, request.getKeyword())
                     .or()
-                    .like(SysUser::getNickName, keyword)
+                    .like(SysUser::getNickName, request.getKeyword())
                     .or()
-                    .like(SysUser::getEmail, keyword));
+                    .like(SysUser::getEmail, request.getKeyword()));
         }
-        if (StringUtils.hasText(status)) {
-            queryWrapper.eq(SysUser::getStatus, status);
+        if (StringUtils.hasText(request.getStatus())) {
+            queryWrapper.eq(SysUser::getStatus, request.getStatus());
         }
 
-        Page<SysUser> page = sysUserMapper.selectPage(new Page<>(current, size), queryWrapper);
+        Page<SysUser> page = sysUserMapper.selectPage(PageUtils.buildPage(request, USER_SORT_FIELDS, "id", "asc"), queryWrapper);
         List<SysUser> users = page.getRecords();
         if (users.isEmpty()) {
-            return new PageResponse<>(List.of(), page.getTotal(), page.getCurrent(), page.getSize());
+            return PageUtils.toResponse(page, List.of(), request);
         }
 
         List<Long> userIds = users.stream().map(SysUser::getId).toList();
@@ -69,7 +81,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         List<UserAdminResponse> records = users.stream()
                 .map(user -> toResponse(user, userRoleIds.getOrDefault(user.getId(), List.of()), roleMap))
                 .toList();
-        return new PageResponse<>(records, page.getTotal(), page.getCurrent(), page.getSize());
+        return PageUtils.toResponse(page, records, request);
     }
 
     @Override

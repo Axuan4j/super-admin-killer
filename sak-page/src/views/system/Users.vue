@@ -153,13 +153,15 @@ const loadData = async () => {
       getUsers({
         keyword: keyword.value || undefined,
         status: statusFilter.value || undefined,
-        current: currentPage.value,
-        size: pageSize.value
+        pageNum: currentPage.value,
+        pageSize: pageSize.value
       }),
       getUserRoleOptions()
     ])
     users.value = userPage.records
     total.value = userPage.total
+    currentPage.value = userPage.pageNum
+    pageSize.value = userPage.pageSize
     roleOptions.value = roleData
   } finally {
     loading.value = false

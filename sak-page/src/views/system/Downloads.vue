@@ -135,11 +135,13 @@ const loadData = async () => {
     const page = await getExportRecords({
       bizType: bizTypeFilter.value || undefined,
       status: statusFilter.value || undefined,
-      current: currentPage.value,
-      size: pageSize.value
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
     })
     records.value = page.records
     total.value = page.total
+    currentPage.value = page.pageNum
+    pageSize.value = page.pageSize
   } finally {
     loading.value = false
   }

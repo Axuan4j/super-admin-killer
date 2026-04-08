@@ -3,20 +3,34 @@ package com.sak.service.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sak.service.config.StaticResourceConfig;
+import com.sak.service.dto.ExportRecordQueryRequest;
 import com.sak.service.dto.ExportRecordResponse;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.entity.SysExportRecord;
 import com.sak.service.mapper.SysExportRecordMapper;
 import com.sak.service.service.ExportRecordService;
+import com.sak.service.util.PageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class ExportRecordServiceImpl implements ExportRecordService {
+
+    private static final Map<String, String> EXPORT_RECORD_SORT_FIELDS = new LinkedHashMap<>();
+
+    static {
+        EXPORT_RECORD_SORT_FIELDS.put("id", "id");
+        EXPORT_RECORD_SORT_FIELDS.put("bizType", "biz_type");
+        EXPORT_RECORD_SORT_FIELDS.put("status", "status");
+        EXPORT_RECORD_SORT_FIELDS.put("createTime", "create_time");
+        EXPORT_RECORD_SORT_FIELDS.put("finishTime", "finish_time");
+    }
 
     private final SysExportRecordMapper sysExportRecordMapper;
     private final StaticResourceConfig staticResourceConfig;
@@ -66,22 +80,16 @@ public class ExportRecordServiceImpl implements ExportRecordService {
     }
 
     @Override
-    public PageResponse<ExportRecordResponse> listRecords(String bizType, String status, long current, long size) {
-        LambdaQueryWrapper<SysExportRecord> wrapper = new LambdaQueryWrapper<SysExportRecord>()
-                .orderByDesc(SysExportRecord::getId);
-        if (StringUtils.hasText(bizType)) {
-            wrapper.eq(SysExportRecord::getBizType, bizType.trim());
+    public PageResponse<ExportRecordResponse> listRecords(ExportRecordQueryRequest request) {
+        LambdaQueryWrapper<SysExportRecord> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(request.getBizType())) {
+            wrapper.eq(SysExportRecord::getBizType, request.getBizType().trim());
         }
-        if (StringUtils.hasText(status)) {
-            wrapper.eq(SysExportRecord::getStatus, status.trim());
+        if (StringUtils.hasText(request.getStatus())) {
+            wrapper.eq(SysExportRecord::getStatus, request.getStatus().trim());
         }
-        Page<SysExportRecord> page = sysExportRecordMapper.selectPage(new Page<>(current, size), wrapper);
-        return new PageResponse<>(
-                page.getRecords().stream().map(this::toResponse).toList(),
-                page.getTotal(),
-                page.getCurrent(),
-                page.getSize()
-        );
+        Page<SysExportRecord> page = sysExportRecordMapper.selectPage(PageUtils.buildPage(request, EXPORT_RECORD_SORT_FIELDS, "id", "desc"), wrapper);
+        return PageUtils.toResponse(page, page.getRecords().stream().map(this::toResponse).toList(), request);
     }
 
     private ExportRecordResponse toResponse(SysExportRecord record) {
