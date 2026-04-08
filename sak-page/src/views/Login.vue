@@ -65,17 +65,20 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, reactive, ref} from 'vue'
+import {onMounted, onUnmounted, reactive, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '@/stores'
+import { usePreferenceStore } from '@/stores/preference'
 import {env} from "@/utils/envMap.ts";
 import {FontAwesomeIcon} from "@fortawesome/vue-fontawesome";
 import {getCaptcha} from "@/api/auth.ts";
 import {Message} from '@arco-design/web-vue'
 import axios from 'axios'
+import { applyColorMode } from '@/utils/theme'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const preferenceStore = usePreferenceStore()
 
 const formRef = ref()
 const loading = ref(false)
@@ -122,7 +125,12 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
+  applyColorMode('light')
   fetchCaptcha()
+})
+
+onUnmounted(() => {
+  preferenceStore.applyTheme()
 })
 </script>
 
@@ -135,6 +143,7 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   overflow: hidden;
+  color-scheme: light;
 }
 
 .login-bg {

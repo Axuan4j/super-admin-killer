@@ -8,9 +8,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @MapperScan("com.sak.service.mapper")
 @EnableAsync
-public class BackendApplication {
+public class SuperAdminKillerApiApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(BackendApplication.class, args);
+        SpringApplication.run(SuperAdminKillerApiApplication.class, args);
     }
 }
