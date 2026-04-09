@@ -3,12 +3,17 @@ package com.sak.service.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mzt.logapi.starter.annotation.LogRecord;
 import com.sak.service.dto.NotificationRecipientResponse;
+import com.sak.service.dto.NotificationRecordDetailResponse;
+import com.sak.service.dto.NotificationRecordQueryRequest;
+import com.sak.service.dto.NotificationRecordResponse;
 import com.sak.service.dto.NotificationSendRequest;
 import com.sak.service.dto.NotificationSendResponse;
+import com.sak.service.dto.PageResponse;
 import com.sak.service.entity.SysUser;
 import com.sak.service.mapper.SysUserMapper;
 import com.sak.service.service.AdminNotificationService;
 import com.sak.service.service.NotificationDispatchService;
+import com.sak.service.service.NotificationRecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     private final SysUserMapper sysUserMapper;
     private final NotificationDispatchService notificationDispatchService;
+    private final NotificationRecordService notificationRecordService;
 
     @Override
     public List<NotificationRecipientResponse> listRecipients() {
@@ -33,6 +39,16 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                 .stream()
                 .map(this::toRecipient)
                 .toList();
+    }
+
+    @Override
+    public PageResponse<NotificationRecordResponse> listRecords(NotificationRecordQueryRequest request) {
+        return notificationRecordService.listRecords(request);
+    }
+
+    @Override
+    public NotificationRecordDetailResponse getRecordDetail(Long id) {
+        return notificationRecordService.getRecordDetail(id);
     }
 
     @Override

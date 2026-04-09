@@ -85,40 +85,56 @@
             >
               编辑
             </a-button>
-            <a-button
+            <a-popconfirm
               v-if="authStore.hasPermission('system:schedule:edit') && ['PAUSED', 'CANCELED'].includes(record.status)"
-              type="text"
-              size="small"
-              @click="handleStart(record.id)"
+              :content="`确认启动任务「${record.taskName}」？`"
+              @ok="handleStart(record.id)"
             >
-              启动
-            </a-button>
-            <a-button
+              <a-button
+                type="text"
+                size="small"
+              >
+                启动
+              </a-button>
+            </a-popconfirm>
+            <a-popconfirm
               v-if="authStore.hasPermission('system:schedule:edit') && record.status === 'SCHEDULED'"
-              type="text"
-              size="small"
-              @click="handlePause(record.id)"
+              :content="`确认暂停任务「${record.taskName}」？`"
+              @ok="handlePause(record.id)"
             >
-              暂停
-            </a-button>
-            <a-button
+              <a-button
+                type="text"
+                size="small"
+              >
+                暂停
+              </a-button>
+            </a-popconfirm>
+            <a-popconfirm
               v-if="authStore.hasPermission('system:schedule:edit') && ['SCHEDULED', 'PAUSED'].includes(record.status)"
-              type="text"
-              size="small"
-              status="warning"
-              @click="handleCancel(record.id)"
+              :content="`确认取消任务「${record.taskName}」？取消后不会继续调度。`"
+              @ok="handleCancel(record.id)"
             >
-              取消
-            </a-button>
-            <a-button
+              <a-button
+                type="text"
+                size="small"
+                status="warning"
+              >
+                取消
+              </a-button>
+            </a-popconfirm>
+            <a-popconfirm
               v-if="authStore.hasPermission('system:schedule:run')"
-              type="text"
-              size="small"
-              :disabled="record.status === 'RUNNING' || record.status === 'CANCELED'"
-              @click="handleRun(record.id)"
+              :content="`确认立即执行一次任务「${record.taskName}」？`"
+              @ok="handleRun(record.id)"
             >
-              执行一次
-            </a-button>
+              <a-button
+                type="text"
+                size="small"
+                :disabled="record.status === 'RUNNING' || record.status === 'CANCELED'"
+              >
+                执行一次
+              </a-button>
+            </a-popconfirm>
             <a-popconfirm
               v-if="authStore.hasPermission('system:schedule:remove')"
               content="确认删除该调度任务？"

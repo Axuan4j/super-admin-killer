@@ -7,6 +7,7 @@ import java.util.Map;
 
 @Data
 public class NotificationSendResponse {
+    private Long recordId;
     private int recipientCount;
     private int successUserCount;
     private Map<String, Integer> channelSuccessCounts = new LinkedHashMap<>();

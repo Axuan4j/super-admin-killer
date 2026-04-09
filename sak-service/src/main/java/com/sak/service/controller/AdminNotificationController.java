@@ -2,6 +2,10 @@ package com.sak.service.controller;
 
 import com.sak.service.common.Result;
 import com.sak.service.dto.NotificationRecipientResponse;
+import com.sak.service.dto.NotificationRecordDetailResponse;
+import com.sak.service.dto.NotificationRecordQueryRequest;
+import com.sak.service.dto.NotificationRecordResponse;
+import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.NotificationSendResponse;
 import com.sak.service.convert.RequestVoConverter;
 import com.sak.service.service.AdminNotificationService;
@@ -11,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +34,18 @@ public class AdminNotificationController {
     @PreAuthorize("hasAuthority('system:notification:view')")
     public Result<List<NotificationRecipientResponse>> listRecipientOptions() {
         return Result.success(adminNotificationService.listRecipients());
+    }
+
+    @GetMapping("/records")
+    @PreAuthorize("hasAuthority('system:notification:view')")
+    public Result<PageResponse<NotificationRecordResponse>> listRecords(NotificationRecordQueryRequest request) {
+        return Result.success(adminNotificationService.listRecords(request));
+    }
+
+    @GetMapping("/records/{id}")
+    @PreAuthorize("hasAuthority('system:notification:view')")
+    public Result<NotificationRecordDetailResponse> getRecordDetail(@PathVariable("id") Long id) {
+        return Result.success(adminNotificationService.getRecordDetail(id));
     }
 
     @PostMapping("/send")

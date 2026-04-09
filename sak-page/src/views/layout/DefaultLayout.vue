@@ -21,12 +21,14 @@
             </template>
             设置
           </a-button>
-          <a-button type="outline" @click="handleLogout">
-            <template #icon>
-              <font-awesome-icon icon="fa-solid fa-right-from-bracket"/>
-            </template>
-            退出登录
-          </a-button>
+          <a-popconfirm content="确认退出当前登录会话？" @ok="handleLogout">
+            <a-button type="outline">
+              <template #icon>
+                <font-awesome-icon icon="fa-solid fa-right-from-bracket"/>
+              </template>
+              退出登录
+            </a-button>
+          </a-popconfirm>
           <a-space>
             <a-avatar v-if="authStore.userInfo?.avatar" :size="32">
               <img :src="resolveAssetUrl(authStore.userInfo.avatar)" alt="avatar" class="header-avatar-image" />

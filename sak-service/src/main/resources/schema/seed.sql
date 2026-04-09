@@ -12,6 +12,7 @@ DELETE FROM `sys_file_record`;
 DELETE FROM `sys_scheduled_task_type`;
 DELETE FROM `sys_scheduled_task`;
 DELETE FROM `sys_site_message`;
+DELETE FROM `sys_notification_record`;
 DELETE FROM `sys_login_log`;
 DELETE FROM `sys_oper_log`;
 DELETE FROM `sys_dict_item`;

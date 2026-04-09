@@ -19,4 +19,8 @@ public class NotificationChannelSendResult {
     public static NotificationChannelSendResult skipped(String message) {
         return new NotificationChannelSendResult(false, true, message);
     }
+
+    public static NotificationChannelSendResult failed(String message) {
+        return new NotificationChannelSendResult(false, false, message);
+    }
 }
