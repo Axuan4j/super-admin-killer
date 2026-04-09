@@ -1,4 +1,4 @@
-package com.sak.service.service;
+package com.sak.service.job;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sak.service.dto.ScheduledTaskTypeOptionResponse;

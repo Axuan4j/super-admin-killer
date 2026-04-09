@@ -1,4 +1,4 @@
-package com.sak.service.service.impl;
+package com.sak.service.job.handler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,8 +6,8 @@ import com.sak.service.dto.NotificationSendRequest;
 import com.sak.service.dto.ScheduledTaskFieldOptionResponse;
 import com.sak.service.dto.ScheduledTaskFormFieldResponse;
 import com.sak.service.dto.ScheduledTaskTypeOptionResponse;
+import com.sak.service.job.ScheduledTaskDefinitionHandler;
 import com.sak.service.service.NotificationDispatchService;
-import com.sak.service.service.ScheduledTaskDefinitionHandler;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
