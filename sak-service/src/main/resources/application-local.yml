@@ -20,12 +20,31 @@ spring:
     url: jdbc:mysql://${DB.HOST:mysql.db.net}:${DB.PORT:3306}/SuperKillerAdmin?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: ${DB.USERNAME:root}
     password: ${DB.PASSWORD:121380}
+    hikari:
+      pool-name: ${DB.POOL.NAME:sak-hikari-local}
+      minimum-idle: ${DB.POOL.MIN_IDLE:5}
+      maximum-pool-size: ${DB.POOL.MAX_SIZE:20}
+      idle-timeout: ${DB.POOL.IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB.POOL.MAX_LIFETIME:1800000}
+      connection-timeout: ${DB.POOL.CONNECTION_TIMEOUT:30000}
+      validation-timeout: ${DB.POOL.VALIDATION_TIMEOUT:5000}
+      keepalive-time: ${DB.POOL.KEEPALIVE_TIME:300000}
   data:
     redis:
       host: ${REDIS.HOST:redis.flagnw.net}
       port: ${REDIS.PORT:6379}
       password: ${REDIS.PASSWORD:121380}
       database: 0
+      timeout: ${REDIS.TIMEOUT:5s}
+      connect-timeout: ${REDIS.CONNECT_TIMEOUT:5s}
+      lettuce:
+        pool:
+          enabled: true
+          max-active: ${REDIS.POOL.MAX_ACTIVE:16}
+          max-idle: ${REDIS.POOL.MAX_IDLE:8}
+          min-idle: ${REDIS.POOL.MIN_IDLE:2}
+          max-wait: ${REDIS.POOL.MAX_WAIT:3s}
+        shutdown-timeout: ${REDIS.SHUTDOWN_TIMEOUT:100ms}
 
 mybatis-plus:
   configuration:

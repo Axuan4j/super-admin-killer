@@ -68,6 +68,50 @@ export interface MonitorOverview {
     dbSize?: number
     message?: string
   }
+  threadPools: Array<{
+    beanName?: string
+    threadNamePrefix?: string
+    corePoolSize?: number
+    maxPoolSize?: number
+    poolSize?: number
+    activeCount?: number
+    queueSize?: number
+    queueRemainingCapacity?: number
+    completedTaskCount?: number
+    taskCount?: number
+    largestPoolSize?: number
+    shutdown?: boolean
+    terminated?: boolean
+  }>
+  cache?: {
+    cacheCount?: number
+    caches: Array<{
+      name?: string
+      estimatedSize?: number
+      hitCount?: number
+      missCount?: number
+      hitRate?: number
+      evictionCount?: number
+    }>
+  }
+  scheduledTask?: {
+    totalCount?: number
+    scheduledCount?: number
+    pausedCount?: number
+    runningCount?: number
+    failureCount?: number
+    latestFailureTaskName?: string
+    latestFailureTime?: string
+    latestFailureMessage?: string
+    nearestNextRunTime?: string
+    nearestNextRunTaskName?: string
+  }
+  security?: {
+    todayLoginSuccessCount?: number
+    todayLoginFailureCount?: number
+    onlineSessionCount?: number
+    mfaEnabledUserCount?: number
+  }
   disks: Array<{
     name?: string
     mount?: string

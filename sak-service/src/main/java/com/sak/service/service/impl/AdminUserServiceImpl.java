@@ -15,6 +15,7 @@ import com.sak.service.mapper.SysUserMapper;
 import com.sak.service.service.AdminUserService;
 import com.sak.service.service.UserRoleRelationService;
 import com.sak.service.util.PageUtils;
+import com.sak.service.util.ValidUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -88,10 +89,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     @LogRecord(success = "新增用户：{{#p0.username}}", fail = "新增用户失败：{{#p0.username}}", type = "USER", subType = "CREATE", bizNo = "{{#_ret.id}}")
     public UserAdminResponse createUser(UserSaveRequest request) {
+        ValidUtil.check()
+                .hasText(request.getUsername(), "用户名不能为空")
+                .hasText(request.getPassword(), "新增用户时密码不能为空");
         validateUsernameUnique(request.getUsername(), null);
-        if (!StringUtils.hasText(request.getPassword())) {
-            throw new IllegalArgumentException("新增用户时密码不能为空");
-        }
 
         SysUser user = new SysUser();
         applyRequest(user, request, true);
@@ -104,6 +105,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     @LogRecord(success = "编辑用户：{{#p1.username}}", fail = "编辑用户失败：{{#p1.username}}", type = "USER", subType = "UPDATE", bizNo = "{{#p0}}")
     public UserAdminResponse updateUser(Long id, UserSaveRequest request) {
+        ValidUtil.check()
+                .hasText(request.getUsername(), "用户名不能为空");
         SysUser user = requireUser(id);
         validateUsernameUnique(request.getUsername(), id);
         applyRequest(user, request, false);

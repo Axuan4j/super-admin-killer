@@ -4,9 +4,11 @@ import com.sak.service.common.Result;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.ScheduledTaskQueryRequest;
 import com.sak.service.dto.ScheduledTaskResponse;
-import com.sak.service.dto.ScheduledTaskSaveRequest;
 import com.sak.service.dto.ScheduledTaskTypeOptionResponse;
+import com.sak.service.convert.RequestVoConverter;
 import com.sak.service.service.ScheduledTaskService;
+import com.sak.service.vo.ScheduledTaskSaveVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -27,6 +29,7 @@ import java.util.List;
 public class ScheduledTaskController {
 
     private final ScheduledTaskService scheduledTaskService;
+    private final RequestVoConverter requestVoMapper;
 
     @GetMapping
     @PreAuthorize("hasAuthority('system:schedule:view')")
@@ -54,15 +57,15 @@ public class ScheduledTaskController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('system:schedule:add')")
-    public Result<ScheduledTaskResponse> createTask(Authentication authentication, @RequestBody ScheduledTaskSaveRequest request) {
+    public Result<ScheduledTaskResponse> createTask(Authentication authentication, @Valid @RequestBody ScheduledTaskSaveVO request) {
         String operator = authentication == null ? "系统" : authentication.getName();
-        return Result.success(scheduledTaskService.createTask(request, operator));
+        return Result.success(scheduledTaskService.createTask(requestVoMapper.toScheduledTaskSaveRequest(request), operator));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:schedule:edit')")
-    public Result<ScheduledTaskResponse> updateTask(@PathVariable("id") Long id, @RequestBody ScheduledTaskSaveRequest request) {
-        return Result.success(scheduledTaskService.updateTask(id, request));
+    public Result<ScheduledTaskResponse> updateTask(@PathVariable("id") Long id, @Valid @RequestBody ScheduledTaskSaveVO request) {
+        return Result.success(scheduledTaskService.updateTask(id, requestVoMapper.toScheduledTaskSaveRequest(request)));
     }
 
     @PostMapping("/{id}/start")

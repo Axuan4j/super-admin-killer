@@ -48,6 +48,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/mfa/verify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/storage/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/system/dicts/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user/refresh").permitAll()

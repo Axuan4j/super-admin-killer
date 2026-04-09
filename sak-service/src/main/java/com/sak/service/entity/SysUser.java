@@ -21,6 +21,9 @@ public class SysUser implements Serializable {
     private String phone;
     private String sex;
     private String avatar;
+    private Integer mfaEnabled;
+    private String mfaSecret;
+    private LocalDateTime mfaBoundAt;
     private String status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

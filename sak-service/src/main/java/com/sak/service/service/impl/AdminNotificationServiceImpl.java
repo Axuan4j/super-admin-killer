@@ -27,7 +27,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Override
     public List<NotificationRecipientResponse> listRecipients() {
         return sysUserMapper.selectList(new LambdaQueryWrapper<SysUser>()
-                        .select(SysUser::getId, SysUser::getUsername, SysUser::getNickName, SysUser::getEmail, SysUser::getStatus)
+                        .select(SysUser::getId, SysUser::getUsername, SysUser::getNickName, SysUser::getEmail, SysUser::getWxPusherUid, SysUser::getStatus)
                         .eq(SysUser::getStatus, "0")
                         .orderByAsc(SysUser::getId))
                 .stream()

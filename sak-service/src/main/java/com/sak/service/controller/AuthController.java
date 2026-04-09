@@ -3,12 +3,19 @@ package com.sak.service.controller;
 import com.sak.service.common.Result;
 import com.sak.service.config.StaticResourceConfig;
 import com.sak.service.dto.AvatarUploadResponse;
-import com.sak.service.dto.UserPasswordUpdateRequest;
+import com.sak.service.dto.MfaSetupResponse;
 import com.sak.service.dto.UserInfoResponse;
-import com.sak.service.dto.UserProfileUpdateRequest;
+import com.sak.service.convert.RequestVoConverter;
+import com.sak.service.service.MfaService;
 import com.sak.service.service.TokenService;
 import com.sak.service.service.UserProfileService;
 import com.sak.service.utils.JwtUtils;
+import com.sak.service.vo.LogoutVO;
+import com.sak.service.vo.MfaCodeVO;
+import com.sak.service.vo.TokenRefreshVO;
+import com.sak.service.vo.UserPasswordUpdateVO;
+import com.sak.service.vo.UserProfileUpdateVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.StringUtils;
@@ -30,7 +37,9 @@ public class AuthController {
     private final TokenService tokenService;
     private final JwtUtils jwtUtils;
     private final UserProfileService userProfileService;
+    private final MfaService mfaService;
     private final StaticResourceConfig staticResourceConfig;
+    private final RequestVoConverter requestVoMapper;
 
     @GetMapping("/info")
     public Result<UserInfoResponse> getCurrentUser(Authentication authentication) {
@@ -38,13 +47,30 @@ public class AuthController {
     }
 
     @PutMapping("/profile")
-    public Result<UserInfoResponse> updateCurrentUserProfile(Authentication authentication, @RequestBody UserProfileUpdateRequest request) {
-        return Result.success(userProfileService.updateUserProfile(authentication.getName(), request));
+    public Result<UserInfoResponse> updateCurrentUserProfile(Authentication authentication, @Valid @RequestBody UserProfileUpdateVO request) {
+        return Result.success(userProfileService.updateUserProfile(authentication.getName(), requestVoMapper.toUserProfileUpdateRequest(request)));
     }
 
     @PutMapping("/password")
-    public Result<Void> updateCurrentUserPassword(Authentication authentication, @RequestBody UserPasswordUpdateRequest request) {
-        userProfileService.updatePassword(authentication.getName(), request);
+    public Result<Void> updateCurrentUserPassword(Authentication authentication, @Valid @RequestBody UserPasswordUpdateVO request) {
+        userProfileService.updatePassword(authentication.getName(), requestVoMapper.toUserPasswordUpdateRequest(request));
+        return Result.success();
+    }
+
+    @PostMapping("/mfa/setup")
+    public Result<MfaSetupResponse> setupMfa(Authentication authentication) {
+        return Result.success(mfaService.createSetup(authentication.getName()));
+    }
+
+    @PostMapping("/mfa/enable")
+    public Result<Void> enableMfa(Authentication authentication, @Valid @RequestBody MfaCodeVO request) {
+        mfaService.enableMfa(authentication.getName(), requestVoMapper.toMfaCodeRequest(request));
+        return Result.success();
+    }
+
+    @PostMapping("/mfa/disable")
+    public Result<Void> disableMfa(Authentication authentication, @Valid @RequestBody MfaCodeVO request) {
+        mfaService.disableMfa(authentication.getName(), requestVoMapper.toMfaCodeRequest(request));
         return Result.success();
     }
 
@@ -71,23 +97,17 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public Result<Map<String, String>> refreshToken(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            return Result.error("refreshToken is required");
-        }
+    public Result<Map<String, String>> refreshToken(@Valid @RequestBody TokenRefreshVO request) {
+        String refreshToken = request.getRefreshToken();
 
-        // 验证 refresh_token
         if (!jwtUtils.validateToken(refreshToken) || !jwtUtils.isRefreshToken(refreshToken)) {
             return Result.error("invalid refreshToken");
         }
 
-        // 检查 refresh_token 是否在黑名单/已撤销
         if (!tokenService.isRefreshTokenValid(refreshToken)) {
             return Result.error("refreshToken has been revoked");
         }
 
-        // 生成新的 access_token
         String newAccessToken = tokenService.refreshAccessToken(refreshToken);
         if (newAccessToken == null) {
             return Result.error("refresh failed");
@@ -97,10 +117,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public Result<Void> logout(@RequestBody Map<String, String> request) {
-        String accessToken = request.get("accessToken");
-        String refreshToken = request.get("refreshToken");
-        String token = request.get("token");
+    public Result<Void> logout(@RequestBody LogoutVO request) {
+        String accessToken = request.getAccessToken();
+        String refreshToken = request.getRefreshToken();
+        String token = request.getToken();
 
         if (accessToken != null && !accessToken.isEmpty()) {
             tokenService.deleteToken(accessToken);

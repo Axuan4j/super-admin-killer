@@ -13,6 +13,7 @@ import com.sak.service.mapper.SysUserMapper;
 import com.sak.service.mapper.SysUserRoleMapper;
 import com.sak.service.service.CustomUserDetailsService;
 import com.sak.service.service.UserProfileService;
+import com.sak.service.util.ValidUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -66,6 +67,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 user.getWxPusherUid(),
                 user.getPhone(),
                 user.getAvatar(),
+                Integer.valueOf(1).equals(user.getMfaEnabled()),
                 roles,
                 permissions.stream().sorted().collect(Collectors.toList())
         );
@@ -76,9 +78,8 @@ public class UserProfileServiceImpl implements UserProfileService {
     @LogRecord(success = "更新个人资料", fail = "更新个人资料失败", type = "PROFILE", subType = "UPDATE", bizNo = "{{#p0}}")
     public UserInfoResponse updateUserProfile(String username, UserProfileUpdateRequest request) {
         SysUser user = getRequiredUser(username);
-        if (!StringUtils.hasText(request.getNickName())) {
-            throw new IllegalArgumentException("昵称不能为空");
-        }
+        ValidUtil.check()
+                .hasText(request.getNickName(), "昵称不能为空");
         user.setNickName(request.getNickName().trim());
         user.setEmail(normalize(request.getEmail()));
         user.setWxPusherUid(normalize(request.getWxPusherUid()));
@@ -93,18 +94,12 @@ public class UserProfileServiceImpl implements UserProfileService {
     @LogRecord(success = "修改个人密码", fail = "修改个人密码失败", type = "PROFILE", subType = "PASSWORD", bizNo = "{{#p0}}")
     public void updatePassword(String username, UserPasswordUpdateRequest request) {
         SysUser user = getRequiredUser(username);
-        if (!StringUtils.hasText(request.getOldPassword()) || !StringUtils.hasText(request.getNewPassword())) {
-            throw new IllegalArgumentException("原密码和新密码不能为空");
-        }
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("原密码不正确");
-        }
-        if (request.getNewPassword().trim().length() < 6) {
-            throw new IllegalArgumentException("新密码至少 6 位");
-        }
-        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("新密码不能与原密码相同");
-        }
+        ValidUtil.check()
+                .hasText(request.getOldPassword(), "原密码不能为空")
+                .hasText(request.getNewPassword(), "新密码不能为空")
+                .custom(() -> passwordEncoder.matches(request.getOldPassword(), user.getPassword()), "原密码不正确")
+                .minLength(request.getNewPassword(), 6, "新密码至少 6 位")
+                .custom(() -> !passwordEncoder.matches(request.getNewPassword().trim(), user.getPassword()), "新密码不能与原密码相同");
         user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
         sysUserMapper.updateById(user);
     }

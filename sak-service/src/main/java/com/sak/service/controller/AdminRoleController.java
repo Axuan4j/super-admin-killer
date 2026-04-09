@@ -4,8 +4,10 @@ import com.sak.service.common.Result;
 import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleQueryRequest;
 import com.sak.service.dto.RoleOptionResponse;
-import com.sak.service.dto.RoleSaveRequest;
+import com.sak.service.convert.RequestVoConverter;
 import com.sak.service.service.AdminRoleService;
+import com.sak.service.vo.RoleSaveVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ import java.util.List;
 public class AdminRoleController {
 
     private final AdminRoleService adminRoleService;
+    private final RequestVoConverter requestVoMapper;
 
     @GetMapping
     @PreAuthorize("hasAuthority('system:role:view')")
@@ -27,14 +30,14 @@ public class AdminRoleController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('system:role:add')")
-    public Result<RoleOptionResponse> createRole(@RequestBody RoleSaveRequest request) {
-        return Result.success(adminRoleService.createRole(request));
+    public Result<RoleOptionResponse> createRole(@Valid @RequestBody RoleSaveVO request) {
+        return Result.success(adminRoleService.createRole(requestVoMapper.toRoleSaveRequest(request)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:role:edit')")
-    public Result<RoleOptionResponse> updateRole(@PathVariable("id") Long id, @RequestBody RoleSaveRequest request) {
-        return Result.success(adminRoleService.updateRole(id, request));
+    public Result<RoleOptionResponse> updateRole(@PathVariable("id") Long id, @Valid @RequestBody RoleSaveVO request) {
+        return Result.success(adminRoleService.updateRole(id, requestVoMapper.toRoleSaveRequest(request)));
     }
 
     @DeleteMapping("/{id}")

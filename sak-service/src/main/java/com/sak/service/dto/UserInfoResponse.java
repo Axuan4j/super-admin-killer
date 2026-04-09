@@ -17,6 +17,7 @@ public class UserInfoResponse {
     private String wxPusherUid;
     private String phone;
     private String avatar;
+    private Boolean mfaEnabled;
     private List<String> roles;
     private List<String> authorities;
 }

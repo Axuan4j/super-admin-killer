@@ -2,9 +2,11 @@ package com.sak.service.controller;
 
 import com.sak.service.common.Result;
 import com.sak.service.dto.NotificationRecipientResponse;
-import com.sak.service.dto.NotificationSendRequest;
 import com.sak.service.dto.NotificationSendResponse;
+import com.sak.service.convert.RequestVoConverter;
 import com.sak.service.service.AdminNotificationService;
+import com.sak.service.vo.NotificationSendVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,6 +23,7 @@ import java.util.List;
 public class AdminNotificationController {
 
     private final AdminNotificationService adminNotificationService;
+    private final RequestVoConverter requestVoMapper;
 
     @GetMapping("/recipient-options")
     @PreAuthorize("hasAuthority('system:notification:view')")
@@ -30,7 +33,7 @@ public class AdminNotificationController {
 
     @PostMapping("/send")
     @PreAuthorize("hasAuthority('system:notification:send')")
-    public Result<NotificationSendResponse> sendNotification(Authentication authentication, @RequestBody NotificationSendRequest request) {
-        return Result.success(adminNotificationService.sendNotification(authentication, request));
+    public Result<NotificationSendResponse> sendNotification(Authentication authentication, @Valid @RequestBody NotificationSendVO request) {
+        return Result.success(adminNotificationService.sendNotification(authentication, requestVoMapper.toNotificationSendRequest(request)));
     }
 }

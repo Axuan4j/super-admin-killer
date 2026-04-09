@@ -25,6 +25,14 @@ public class MonitorOverviewResponse {
 
     private RedisInfo redis;
 
+    private List<ThreadPoolInfo> threadPools = new ArrayList<>();
+
+    private CacheOverview cache;
+
+    private ScheduledTaskOverview scheduledTask;
+
+    private SecurityOverview security;
+
     private List<DiskInfo> disks = new ArrayList<>();
 
     @Data
@@ -102,6 +110,61 @@ public class MonitorOverviewResponse {
         private Long connectedClients;
         private Long dbSize;
         private String message;
+    }
+
+    @Data
+    public static class ThreadPoolInfo {
+        private String beanName;
+        private String threadNamePrefix;
+        private Integer corePoolSize;
+        private Integer maxPoolSize;
+        private Integer poolSize;
+        private Integer activeCount;
+        private Integer queueSize;
+        private Integer queueRemainingCapacity;
+        private Long completedTaskCount;
+        private Long taskCount;
+        private Integer largestPoolSize;
+        private Boolean shutdown;
+        private Boolean terminated;
+    }
+
+    @Data
+    public static class CacheOverview {
+        private Integer cacheCount;
+        private List<CacheInfo> caches = new ArrayList<>();
+    }
+
+    @Data
+    public static class CacheInfo {
+        private String name;
+        private Long estimatedSize;
+        private Long hitCount;
+        private Long missCount;
+        private Double hitRate;
+        private Long evictionCount;
+    }
+
+    @Data
+    public static class ScheduledTaskOverview {
+        private Long totalCount;
+        private Long scheduledCount;
+        private Long pausedCount;
+        private Long runningCount;
+        private Long failureCount;
+        private String latestFailureTaskName;
+        private LocalDateTime latestFailureTime;
+        private String latestFailureMessage;
+        private LocalDateTime nearestNextRunTime;
+        private String nearestNextRunTaskName;
+    }
+
+    @Data
+    public static class SecurityOverview {
+        private Long todayLoginSuccessCount;
+        private Long todayLoginFailureCount;
+        private Integer onlineSessionCount;
+        private Long mfaEnabledUserCount;
     }
 
     @Data

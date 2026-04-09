@@ -1,15 +1,29 @@
 package com.sak.service.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.sak.service.dto.MonitorOverviewResponse;
+import com.sak.service.entity.SysLoginLog;
+import com.sak.service.entity.SysScheduledTask;
+import com.sak.service.entity.SysUser;
+import com.sak.service.mapper.SysLoginLogMapper;
+import com.sak.service.mapper.SysScheduledTaskMapper;
+import com.sak.service.mapper.SysUserMapper;
 import com.sak.service.service.SystemMonitorService;
+import com.sak.service.service.TokenService;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataAccessException;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
@@ -29,14 +43,18 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.time.LocalDate;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Service
@@ -49,6 +67,12 @@ public class SystemMonitorServiceImpl implements SystemMonitorService {
     private final DataSource dataSource;
     private final DataSourceProperties dataSourceProperties;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ApplicationContext applicationContext;
+    private final CaffeineCacheManager caffeineCacheManager;
+    private final SysScheduledTaskMapper sysScheduledTaskMapper;
+    private final SysLoginLogMapper sysLoginLogMapper;
+    private final SysUserMapper sysUserMapper;
+    private final TokenService tokenService;
 
     private final Object snapshotMonitor = new Object();
 
@@ -82,6 +106,10 @@ public class SystemMonitorServiceImpl implements SystemMonitorService {
         response.setJvm(collectJvmInfo());
         response.setDatabase(collectDatabaseInfo());
         response.setRedis(collectRedisInfo());
+        response.setThreadPools(collectThreadPools());
+        response.setCache(collectCacheOverview());
+        response.setScheduledTask(collectScheduledTaskOverview());
+        response.setSecurity(collectSecurityOverview());
 
         try {
             SystemInfo systemInfo = new SystemInfo();
@@ -264,6 +292,118 @@ public class SystemMonitorServiceImpl implements SystemMonitorService {
             disks.add(info);
         }
         return disks;
+    }
+
+    private List<MonitorOverviewResponse.ThreadPoolInfo> collectThreadPools() {
+        Map<String, ThreadPoolTaskExecutor> executors = applicationContext.getBeansOfType(ThreadPoolTaskExecutor.class);
+        if (executors.isEmpty()) {
+            return List.of();
+        }
+
+        List<MonitorOverviewResponse.ThreadPoolInfo> threadPools = new ArrayList<>();
+        executors.entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .forEach(entry -> threadPools.add(toThreadPoolInfo(entry.getKey(), entry.getValue())));
+        return threadPools;
+    }
+
+    private MonitorOverviewResponse.CacheOverview collectCacheOverview() {
+        MonitorOverviewResponse.CacheOverview overview = new MonitorOverviewResponse.CacheOverview();
+        List<MonitorOverviewResponse.CacheInfo> caches = new ArrayList<>();
+        List<String> cacheNames = caffeineCacheManager.getCacheNames().stream().sorted().toList();
+        for (String cacheName : cacheNames) {
+            org.springframework.cache.Cache springCache = caffeineCacheManager.getCache(cacheName);
+            if (!(springCache instanceof CaffeineCache caffeineCache)) {
+                continue;
+            }
+            Cache<Object, Object> nativeCache = caffeineCache.getNativeCache();
+            CacheStats stats = nativeCache.stats();
+
+            MonitorOverviewResponse.CacheInfo cacheInfo = new MonitorOverviewResponse.CacheInfo();
+            cacheInfo.setName(cacheName);
+            cacheInfo.setEstimatedSize(nativeCache.estimatedSize());
+            cacheInfo.setHitCount(stats.hitCount());
+            cacheInfo.setMissCount(stats.missCount());
+            cacheInfo.setHitRate(round(stats.hitRate() * 100));
+            cacheInfo.setEvictionCount(stats.evictionCount());
+            caches.add(cacheInfo);
+        }
+        overview.setCacheCount(caches.size());
+        overview.setCaches(caches);
+        return overview;
+    }
+
+    private MonitorOverviewResponse.ScheduledTaskOverview collectScheduledTaskOverview() {
+        MonitorOverviewResponse.ScheduledTaskOverview overview = new MonitorOverviewResponse.ScheduledTaskOverview();
+        overview.setTotalCount(sysScheduledTaskMapper.selectCount(null));
+        overview.setScheduledCount(countScheduledTasksByStatus("SCHEDULED"));
+        overview.setPausedCount(countScheduledTasksByStatus("PAUSED"));
+        overview.setRunningCount(countScheduledTasksByStatus("RUNNING"));
+        overview.setFailureCount(sysScheduledTaskMapper.selectCount(new LambdaQueryWrapper<SysScheduledTask>()
+                .isNotNull(SysScheduledTask::getLastFailureTime)));
+
+        SysScheduledTask latestFailureTask = sysScheduledTaskMapper.selectOne(new LambdaQueryWrapper<SysScheduledTask>()
+                .isNotNull(SysScheduledTask::getLastFailureTime)
+                .orderByDesc(SysScheduledTask::getLastFailureTime)
+                .last("limit 1"));
+        if (latestFailureTask != null) {
+            overview.setLatestFailureTaskName(latestFailureTask.getTaskName());
+            overview.setLatestFailureTime(latestFailureTask.getLastFailureTime());
+            overview.setLatestFailureMessage(latestFailureTask.getLastErrorMessage());
+        }
+
+        SysScheduledTask nextRunTask = sysScheduledTaskMapper.selectOne(new LambdaQueryWrapper<SysScheduledTask>()
+                .eq(SysScheduledTask::getStatus, "SCHEDULED")
+                .isNotNull(SysScheduledTask::getNextRunTime)
+                .orderByAsc(SysScheduledTask::getNextRunTime)
+                .last("limit 1"));
+        if (nextRunTask != null) {
+            overview.setNearestNextRunTaskName(nextRunTask.getTaskName());
+            overview.setNearestNextRunTime(nextRunTask.getNextRunTime());
+        }
+        return overview;
+    }
+
+    private MonitorOverviewResponse.SecurityOverview collectSecurityOverview() {
+        MonitorOverviewResponse.SecurityOverview overview = new MonitorOverviewResponse.SecurityOverview();
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        overview.setTodayLoginSuccessCount(sysLoginLogMapper.selectCount(new LambdaQueryWrapper<SysLoginLog>()
+                .eq(SysLoginLog::getStatus, 1)
+                .ge(SysLoginLog::getLoginTime, startOfDay)));
+        overview.setTodayLoginFailureCount(sysLoginLogMapper.selectCount(new LambdaQueryWrapper<SysLoginLog>()
+                .eq(SysLoginLog::getStatus, 0)
+                .ge(SysLoginLog::getLoginTime, startOfDay)));
+        overview.setOnlineSessionCount(tokenService.listOnlineSessions().size());
+        overview.setMfaEnabledUserCount(sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getMfaEnabled, 1)));
+        return overview;
+    }
+
+    private long countScheduledTasksByStatus(String status) {
+        return sysScheduledTaskMapper.selectCount(new LambdaQueryWrapper<SysScheduledTask>()
+                .eq(SysScheduledTask::getStatus, status));
+    }
+
+    private MonitorOverviewResponse.ThreadPoolInfo toThreadPoolInfo(String beanName, ThreadPoolTaskExecutor executor) {
+        MonitorOverviewResponse.ThreadPoolInfo info = new MonitorOverviewResponse.ThreadPoolInfo();
+        info.setBeanName(beanName);
+        info.setThreadNamePrefix(executor.getThreadNamePrefix());
+        info.setCorePoolSize(executor.getCorePoolSize());
+        info.setMaxPoolSize(executor.getMaxPoolSize());
+
+        ThreadPoolExecutor threadPoolExecutor = executor.getThreadPoolExecutor();
+        if (threadPoolExecutor != null) {
+            info.setPoolSize(threadPoolExecutor.getPoolSize());
+            info.setActiveCount(threadPoolExecutor.getActiveCount());
+            info.setQueueSize(threadPoolExecutor.getQueue().size());
+            info.setQueueRemainingCapacity(threadPoolExecutor.getQueue().remainingCapacity());
+            info.setCompletedTaskCount(threadPoolExecutor.getCompletedTaskCount());
+            info.setTaskCount(threadPoolExecutor.getTaskCount());
+            info.setLargestPoolSize(threadPoolExecutor.getLargestPoolSize());
+            info.setShutdown(threadPoolExecutor.isShutdown());
+            info.setTerminated(threadPoolExecutor.isTerminated());
+        }
+        return info;
     }
 
     private LocalDateTime toLocalDateTime(long epochSeconds) {

@@ -24,6 +24,11 @@
               <a-descriptions-item label="邮箱">{{ authStore.userInfo?.email || '-' }}</a-descriptions-item>
               <a-descriptions-item label="WxPusher UID">{{ authStore.userInfo?.wxPusherUid || '-' }}</a-descriptions-item>
               <a-descriptions-item label="手机号">{{ authStore.userInfo?.phone || '-' }}</a-descriptions-item>
+              <a-descriptions-item label="MFA">
+                <a-tag :color="authStore.userInfo?.mfaEnabled ? 'green' : 'gray'">
+                  {{ authStore.userInfo?.mfaEnabled ? '已启用' : '未启用' }}
+                </a-tag>
+              </a-descriptions-item>
               <a-descriptions-item label="角色" :span="2">
                 <a-space wrap>
                   <a-tag v-for="role in authStore.userInfo?.roles" :key="role" color="arcoblue">{{ role }}</a-tag>
@@ -88,6 +93,68 @@
             </a-form-item>
           </a-form>
         </a-tab-pane>
+
+        <a-tab-pane key="mfa" title="二级验证">
+          <div class="mfa-panel">
+            <a-alert type="info" show-icon>
+              推荐使用 Microsoft Authenticator、Google Authenticator 等标准 TOTP 验证器。
+            </a-alert>
+
+            <a-card class="mfa-card" :bordered="false">
+              <div class="mfa-status">
+                <span>当前状态</span>
+                <a-tag :color="authStore.userInfo?.mfaEnabled ? 'green' : 'gray'">
+                  {{ authStore.userInfo?.mfaEnabled ? '已启用' : '未启用' }}
+                </a-tag>
+              </div>
+
+              <template v-if="!authStore.userInfo?.mfaEnabled">
+                <a-space direction="vertical" fill :size="16">
+                  <a-button type="primary" :loading="loadingMfaSetup" @click="handleCreateMfaSetup">
+                    生成绑定二维码
+                  </a-button>
+
+                  <div v-if="mfaSetup.secret" class="mfa-setup">
+                    <div class="mfa-qr-box">
+                      <img :src="`data:image/png;base64,${mfaSetup.qrCodeBase64}`" alt="mfa-qr" class="mfa-qr-image" />
+                    </div>
+                    <a-form :model="mfaForm" layout="vertical">
+                      <a-form-item label="手动密钥">
+                        <a-space fill>
+                          <a-input :model-value="mfaSetup.secret" readonly />
+                          <a-button @click="copyText(mfaSetup.secret)">复制</a-button>
+                        </a-space>
+                      </a-form-item>
+                      <a-form-item label="绑定链接">
+                        <a-space fill>
+                          <a-input :model-value="mfaSetup.otpauthUri" readonly />
+                          <a-button @click="copyText(mfaSetup.otpauthUri)">复制</a-button>
+                        </a-space>
+                      </a-form-item>
+                      <a-form-item label="输入 6 位动态码完成绑定">
+                        <a-space fill>
+                          <a-input v-model="mfaForm.enableCode" :max-length="6" placeholder="请输入 6 位动态码" />
+                          <a-button type="primary" :loading="enablingMfa" @click="handleEnableMfa">启用</a-button>
+                        </a-space>
+                      </a-form-item>
+                    </a-form>
+                  </div>
+                </a-space>
+              </template>
+
+              <template v-else>
+                <a-form :model="mfaForm" layout="vertical" class="tab-form">
+                  <a-form-item label="关闭 MFA">
+                    <a-space fill>
+                      <a-input v-model="mfaForm.disableCode" :max-length="6" placeholder="请输入验证器中的 6 位动态码" />
+                      <a-button status="danger" :loading="disablingMfa" @click="handleDisableMfa">关闭</a-button>
+                    </a-space>
+                  </a-form-item>
+                </a-form>
+              </template>
+            </a-card>
+          </div>
+        </a-tab-pane>
       </a-tabs>
     </a-card>
 
@@ -120,7 +187,15 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { updatePassword, updateProfile, uploadAvatar } from '@/api/auth.ts'
+import {
+  disableMfa,
+  enableMfa,
+  setupMfa,
+  updatePassword,
+  updateProfile,
+  uploadAvatar
+} from '@/api/auth.ts'
+import type { MfaSetupResponse } from '@/api/auth.ts'
 import { useAuthStore } from '@/stores/auth.ts'
 
 const authStore = useAuthStore()
@@ -128,6 +203,9 @@ const savingProfile = ref(false)
 const savingPassword = ref(false)
 const avatarModalVisible = ref(false)
 const uploadingAvatar = ref(false)
+const loadingMfaSetup = ref(false)
+const enablingMfa = ref(false)
+const disablingMfa = ref(false)
 const avatarFile = ref<File | null>(null)
 const avatarPreviewUrl = ref('')
 const avatarInputRef = ref<HTMLInputElement | null>(null)
@@ -146,6 +224,19 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
+const mfaForm = reactive({
+  enableCode: '',
+  disableCode: ''
+})
+
+const mfaSetup = reactive<MfaSetupResponse>({
+  issuer: '',
+  accountName: '',
+  secret: '',
+  otpauthUri: '',
+  qrCodeBase64: ''
+})
+
 const syncProfileForm = () => {
   profileForm.nickName = authStore.userInfo?.nickName || ''
   profileForm.email = authStore.userInfo?.email || ''
@@ -162,6 +253,16 @@ const resetPasswordForm = () => {
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
+}
+
+const resetMfaSetup = () => {
+  mfaSetup.issuer = ''
+  mfaSetup.accountName = ''
+  mfaSetup.secret = ''
+  mfaSetup.otpauthUri = ''
+  mfaSetup.qrCodeBase64 = ''
+  mfaForm.enableCode = ''
+  mfaForm.disableCode = ''
 }
 
 const resolveAssetUrl = (value?: string) => {
@@ -299,12 +400,70 @@ const handlePasswordSubmit = async () => {
   }
 }
 
+const handleCreateMfaSetup = async () => {
+  loadingMfaSetup.value = true
+  try {
+    const data = await setupMfa()
+    mfaSetup.issuer = data.issuer
+    mfaSetup.accountName = data.accountName
+    mfaSetup.secret = data.secret
+    mfaSetup.otpauthUri = data.otpauthUri
+    mfaSetup.qrCodeBase64 = data.qrCodeBase64
+    mfaForm.enableCode = ''
+    Message.success('二维码已生成，请使用验证器扫码后输入 6 位动态码')
+  } finally {
+    loadingMfaSetup.value = false
+  }
+}
+
+const handleEnableMfa = async () => {
+  if (!/^\d{6}$/.test(mfaForm.enableCode)) {
+    Message.warning('请输入 6 位动态码')
+    return
+  }
+  enablingMfa.value = true
+  try {
+    await enableMfa({ code: mfaForm.enableCode })
+    await authStore.fetchUserInfo(true)
+    resetMfaSetup()
+    Message.success('MFA 已启用')
+  } finally {
+    enablingMfa.value = false
+  }
+}
+
+const handleDisableMfa = async () => {
+  if (!/^\d{6}$/.test(mfaForm.disableCode)) {
+    Message.warning('请输入 6 位动态码')
+    return
+  }
+  disablingMfa.value = true
+  try {
+    await disableMfa({ code: mfaForm.disableCode })
+    await authStore.fetchUserInfo(true)
+    resetMfaSetup()
+    Message.success('MFA 已关闭')
+  } finally {
+    disablingMfa.value = false
+  }
+}
+
+const copyText = async (value: string) => {
+  try {
+    await navigator.clipboard.writeText(value)
+    Message.success('已复制')
+  } catch {
+    Message.warning('复制失败，请手动复制')
+  }
+}
+
 onMounted(async () => {
   if (!authStore.userInfo) {
     await authStore.fetchUserInfo()
   }
   syncProfileForm()
   resetAvatarUpload()
+  resetMfaSetup()
 })
 </script>
 
@@ -357,5 +516,46 @@ onMounted(async () => {
 
 .hidden-input {
   display: none;
+}
+
+.mfa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+}
+
+.mfa-card {
+  padding: 8px 0;
+}
+
+.mfa-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: #1d2129;
+  font-weight: 600;
+}
+
+.mfa-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mfa-qr-box {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  border: 1px solid #e5e6eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.mfa-qr-image {
+  width: 240px;
+  height: 240px;
+  object-fit: contain;
 }
 </style>

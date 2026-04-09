@@ -17,15 +17,34 @@ spring:
             enable: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB.HOST:mysql.app.net}:${DB.PORT:23306}/SuperKillerAdmin?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${DB.HOST:127.0.0.1}:${DB.PORT:23306}/SuperKillerAdmin?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: ${DB.USERNAME:xwu36}
     password: ${DB.PASSWORD:Wu121380..}
+    hikari:
+      pool-name: ${DB.POOL.NAME:sak-hikari-aliyun}
+      minimum-idle: ${DB.POOL.MIN_IDLE:5}
+      maximum-pool-size: ${DB.POOL.MAX_SIZE:20}
+      idle-timeout: ${DB.POOL.IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB.POOL.MAX_LIFETIME:1800000}
+      connection-timeout: ${DB.POOL.CONNECTION_TIMEOUT:30000}
+      validation-timeout: ${DB.POOL.VALIDATION_TIMEOUT:5000}
+      keepalive-time: ${DB.POOL.KEEPALIVE_TIME:300000}
   data:
     redis:
-      host: ${REDIS.HOST:redis.app.net}
+      host: ${REDIS.HOST:127.0.0.1}
       port: ${REDIS.PORT:26379}
       password:
       database: 1
+      timeout: ${REDIS.TIMEOUT:5s}
+      connect-timeout: ${REDIS.CONNECT_TIMEOUT:10s}
+      lettuce:
+        pool:
+          enabled: true
+          max-active: ${REDIS.POOL.MAX_ACTIVE:16}
+          max-idle: ${REDIS.POOL.MAX_IDLE:8}
+          min-idle: ${REDIS.POOL.MIN_IDLE:2}
+          max-wait: ${REDIS.POOL.MAX_WAIT:3s}
+        shutdown-timeout: ${REDIS.SHUTDOWN_TIMEOUT:100ms}
 
 mybatis-plus:
   configuration:

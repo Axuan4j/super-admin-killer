@@ -5,8 +5,10 @@ import com.sak.service.dto.PageResponse;
 import com.sak.service.dto.RoleOptionResponse;
 import com.sak.service.dto.UserAdminResponse;
 import com.sak.service.dto.UserQueryRequest;
-import com.sak.service.dto.UserSaveRequest;
+import com.sak.service.convert.RequestVoConverter;
 import com.sak.service.service.AdminUserService;
+import com.sak.service.vo.UserSaveVO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ import java.util.List;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final RequestVoConverter requestVoMapper;
 
     @GetMapping
     @PreAuthorize("hasAuthority('system:user:view')")
@@ -34,14 +37,14 @@ public class AdminUserController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('system:user:add')")
-    public Result<UserAdminResponse> createUser(@RequestBody UserSaveRequest request) {
-        return Result.success(adminUserService.createUser(request));
+    public Result<UserAdminResponse> createUser(@Valid @RequestBody UserSaveVO request) {
+        return Result.success(adminUserService.createUser(requestVoMapper.toUserSaveRequest(request)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('system:user:edit')")
-    public Result<UserAdminResponse> updateUser(@PathVariable("id") Long id, @RequestBody UserSaveRequest request) {
-        return Result.success(adminUserService.updateUser(id, request));
+    public Result<UserAdminResponse> updateUser(@PathVariable("id") Long id, @Valid @RequestBody UserSaveVO request) {
+        return Result.success(adminUserService.updateUser(id, requestVoMapper.toUserSaveRequest(request)));
     }
 
     @DeleteMapping("/{id}")

@@ -17,6 +17,7 @@
         <h1>{{ env.APP_TITLE }}</h1>
       </div>
         <a-form ref="formRef" :model="formData" class="login-form" auto-label-width>
+        <template v-if="!authStore.requiresMfa">
         <a-form-item field="username" validate-trigger="blur" :rules="[{ required: true, message: '请输入用户名' }]">
           <a-input
               v-model="formData.username"
@@ -59,6 +60,34 @@
             登 录
           </a-button>
         </a-form-item>
+        </template>
+        <template v-else>
+          <div class="mfa-tip">
+            <div class="mfa-title">二级验证</div>
+            <div class="mfa-sub">账号 {{ authStore.pendingMfaUsername || formData.username }} 已启用验证器，请输入 6 位动态码。</div>
+          </div>
+          <a-form-item field="mfaCode" validate-trigger="blur" :rules="[{ required: true, message: '请输入6位动态码' }]">
+            <a-input
+              v-model="formData.mfaCode"
+              placeholder="请输入验证器动态码"
+              size="large"
+              :max-length="6"
+              @keyup.enter="handleLogin"
+            >
+              <template #prefix>
+                <font-awesome-icon icon="fa-solid fa-shield-halved"/>
+              </template>
+            </a-input>
+          </a-form-item>
+          <a-form-item>
+            <a-space fill direction="vertical">
+              <a-button type="primary" size="large" :loading="loading" class="login-btn" @click="handleLogin">
+                验 证 并 登 录
+              </a-button>
+              <a-button size="large" class="secondary-btn" @click="handleBackToLogin">返回账号密码登录</a-button>
+            </a-space>
+          </a-form-item>
+        </template>
       </a-form>
     </div>
   </div>
@@ -88,7 +117,8 @@ const formData = reactive({
   username: '',
   password: '',
   captcha: '',
-  captchaId: ''
+  captchaId: '',
+  mfaCode: ''
 })
 
 const fetchCaptcha = async () => {
@@ -99,16 +129,32 @@ const fetchCaptcha = async () => {
 }
 
 const handleLogin = async () => {
-  try {
-    await formRef.value?.validate()
-  } catch {
-    return
-  }
-
   loading.value = true
   try {
-    await authStore.login(formData)
-    router.push('/layout')
+    if (authStore.requiresMfa) {
+      if (!/^\d{6}$/.test(formData.mfaCode)) {
+        Message.warning('请输入 6 位动态码')
+        return
+      }
+      await authStore.verifyMfaLogin(formData.mfaCode)
+      formData.mfaCode = ''
+      await router.push('/layout')
+      return
+    }
+
+    try {
+      await formRef.value?.validate()
+    } catch {
+      return
+    }
+
+    const result = await authStore.login(formData)
+    if (result.mfaRequired) {
+      formData.mfaCode = ''
+      Message.success('请输入验证器中的 6 位动态码')
+      return
+    }
+    await router.push('/layout')
   } catch (e) {
     console.error('Login failed:', e)
     if (axios.isAxiosError(e)) {
@@ -122,6 +168,12 @@ const handleLogin = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleBackToLogin = async () => {
+  authStore.clearMfaChallenge()
+  formData.mfaCode = ''
+  await fetchCaptcha()
 }
 
 onMounted(() => {
@@ -301,6 +353,32 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   transition: all 0.3s ease;
+}
+
+.secondary-btn {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+}
+
+.mfa-tip {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f2f3f5;
+}
+
+.mfa-title {
+  margin-bottom: 4px;
+  color: #1d2129;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mfa-sub {
+  color: #4e5969;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .login-btn:hover {

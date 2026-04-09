@@ -9,9 +9,11 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  accessToken: string
-  refreshToken: string
+  accessToken?: string
+  refreshToken?: string
   username: string
+  mfaRequired?: boolean
+  challengeToken?: string
 }
 
 export interface CaptchaResponse {
@@ -27,8 +29,17 @@ export interface UserInfoResponse {
   wxPusherUid?: string
   phone?: string
   avatar?: string
+  mfaEnabled?: boolean
   roles: string[]
   authorities: string[]
+}
+
+export interface MfaSetupResponse {
+  issuer: string
+  accountName: string
+  secret: string
+  otpauthUri: string
+  qrCodeBase64: string
 }
 
 export interface UpdateProfilePayload {
@@ -47,6 +58,14 @@ export interface UpdatePasswordPayload {
 export interface AvatarUploadResponse {
   avatarUrl: string
   fileName: string
+}
+
+export interface MfaCodePayload {
+  code: string
+}
+
+export interface MfaVerifyLoginPayload extends MfaCodePayload {
+  challengeToken: string
 }
 
 export const login = (data: LoginRequest) => {
@@ -69,6 +88,27 @@ export const getCaptcha = () => {
 
 export const getUserInfo = () => {
   return request.get<unknown, UserInfoResponse>('/user/info')
+}
+
+export const verifyMfaLogin = (data: MfaVerifyLoginPayload) => {
+  return axios.post('/auth/mfa/verify', data, {
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
+export const setupMfa = () => {
+  return request.post<unknown, MfaSetupResponse>('/user/mfa/setup')
+}
+
+export const enableMfa = (data: MfaCodePayload) => {
+  return request.post('/user/mfa/enable', data)
+}
+
+export const disableMfa = (data: MfaCodePayload) => {
+  return request.post('/user/mfa/disable', data)
 }
 
 export const updateProfile = (data: UpdateProfilePayload) => {
