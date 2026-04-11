@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,7 +19,7 @@ public class NotificationRecordResponse {
     private Integer recipientCount;
     private Integer successUserCount;
     private String status;
-    private Map<String, Integer> channelSuccessCounts;
-    private Map<String, Integer> channelSkipCounts;
+    private Map<String, Integer> channelSuccessCounts = new LinkedHashMap<>();
+    private Map<String, Integer> channelSkipCounts = new LinkedHashMap<>();
     private LocalDateTime createTime;
 }

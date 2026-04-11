@@ -32,8 +32,3 @@ spring:
           min-idle: ${REDIS.POOL.MIN_IDLE:2}
           max-wait: ${REDIS.POOL.MAX_WAIT:3s}
         shutdown-timeout: ${REDIS.SHUTDOWN_TIMEOUT:100ms}
-
-notification:
-  wxpusher:
-    enabled: ${WXPUSHER.ENABLED:true}
-    app-token: ${WXPUSHER.APP_TOKEN:AT_zltAvm2IsUP3H7zfr6LUoiUin8Hr0oBP}

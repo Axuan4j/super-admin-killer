@@ -59,8 +59,8 @@ logging:
 
 notification:
   wxpusher:
-    enabled: ${WXPUSHER.ENABLED:false}
-    app-token: ${WXPUSHER.APP_TOKEN:}
+    enabled: ${WXPUSHER.ENABLED:true}
+    app-token: ${WXPUSHER.APP_TOKEN:AT_zltAvm2IsUP3H7zfr6LUoiUin8Hr0oBP}
     base-url: ${WXPUSHER.BASE_URL:https://wxpusher.zjiecode.com}
     content-type: ${WXPUSHER.CONTENT_TYPE:1}
 
