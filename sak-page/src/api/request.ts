@@ -9,6 +9,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 }
 
 const baseUri: string = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const clientDevice = 'web'
 const request: AxiosInstance = axios.create({
     baseURL: baseUri,
     timeout: 10000
@@ -83,7 +84,10 @@ const refreshAccessToken = async (): Promise<string | null> => {
             `${baseUri}/user/refresh`,
             {refreshToken},
             {
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Client-Device': clientDevice
+                },
                 timeout: 10000
             }
         )
@@ -109,6 +113,9 @@ request.interceptors.request.use(
         const accessToken = localStorage.getItem('accessToken')
         if (accessToken && config.headers) {
             config.headers.Authorization = `Bearer ${accessToken}`
+        }
+        if (config.headers) {
+            config.headers['X-Client-Device'] = clientDevice
         }
         return config
     },

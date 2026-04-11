@@ -91,7 +91,9 @@ INSERT INTO `sys_dict_item`
 (6, 'sys_login_status', '失败', '0', 'danger', 'red', 2, '0', '登录日志结果'),
 (7, 'sys_user_sex', '男', '0', 'arcoblue', 'arcoblue', 1, '0', '用户性别'),
 (8, 'sys_user_sex', '女', '1', 'pinkpurple', 'pinkpurple', 2, '0', '用户性别'),
-(9, 'sys_user_sex', '未知', '2', 'gray', 'gray', 3, '0', '用户性别');
+(9, 'sys_user_sex', '未知', '2', 'gray', 'gray', 3, '0', '用户性别'),
+(10, 'sys_device_type', '网页端', 'web', 'arcoblue', 'arcoblue', 1, '0', '设备类型'),
+(11, 'sys_device_type', '移动端', 'mobile', 'green', 'green', 2, '0', '设备类型');
 
 INSERT INTO `sys_site_message` (`id`, `user_id`, `title`, `content`, `sender_name`, `read_status`, `read_time`, `create_time`, `update_time`) VALUES
 (1, 1, '系统升级通知', '后台管理系统将在今晚 23:00 进行例行维护，请提前保存操作内容。', '系统', 0, NULL, NOW(), NOW()),

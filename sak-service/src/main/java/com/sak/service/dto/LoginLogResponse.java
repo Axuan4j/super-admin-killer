@@ -13,6 +13,7 @@ public class LoginLogResponse {
     private String userAgent;
     private String browser;
     private String os;
+    private String deviceType;
     private Integer status;
     private String message;
     private LocalDateTime loginTime;

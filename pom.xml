@@ -14,6 +14,7 @@
     <modules>
         <module>sak-service</module>
         <module>sak-page</module>
+        <module>sak-mobile</module>
     </modules>
 
     <properties>

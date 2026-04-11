@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 sak-page/node_modules
+sak-mobile/node_modules
 sak-service/target
 dist
 dist-ssr

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.sak</groupId>
+        <artifactId>superkiller-admin</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>sak-mobile</artifactId>
+    <packaging>pom</packaging>
+    <name>Super Admin Killer Mobile Frontend</name>
+    <description>Mobile frontend module driven by Maven lifecycle</description>
+
+    <properties>
+        <frontend.workingDirectory>${project.basedir}</frontend.workingDirectory>
+        <frontend.command>corepack</frontend.command>
+        <frontend.corepackHome>${project.build.directory}/corepack</frontend.corepackHome>
+        <frontend.skip.install>false</frontend.skip.install>
+        <frontend.skip.build>false</frontend.skip.build>
+        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>frontend-install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${frontend.skip.install}</skip>
+                            <workingDirectory>${frontend.workingDirectory}</workingDirectory>
+                            <executable>${frontend.command}</executable>
+                            <environmentVariables>
+                                <CI>true</CI>
+                                <COREPACK_HOME>${frontend.corepackHome}</COREPACK_HOME>
+                            </environmentVariables>
+                            <arguments>
+                                <argument>pnpm</argument>
+                                <argument>install</argument>
+                                <argument>--frozen-lockfile</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>frontend-build</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${frontend.skip.build}</skip>
+                            <workingDirectory>${frontend.workingDirectory}</workingDirectory>
+                            <executable>${frontend.command}</executable>
+                            <environmentVariables>
+                                <CI>true</CI>
+                                <COREPACK_HOME>${frontend.corepackHome}</COREPACK_HOME>
+                            </environmentVariables>
+                            <arguments>
+                                <argument>pnpm</argument>
+                                <argument>run</argument>
+                                <argument>build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -9,6 +9,7 @@ export interface LoginLogItem {
   userAgent?: string
   browser?: string
   os?: string
+  deviceType?: string
   status?: number
   message?: string
   loginTime?: string

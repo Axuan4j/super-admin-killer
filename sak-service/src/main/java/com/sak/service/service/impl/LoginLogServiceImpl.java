@@ -25,6 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LoginLogServiceImpl implements LoginLogService {
 
+    private static final String DEVICE_TYPE_HEADER = "X-Client-Device";
     private static final Map<String, String> LOGIN_LOG_SORT_FIELDS = new LinkedHashMap<>();
 
     static {
@@ -74,6 +75,7 @@ public class LoginLogServiceImpl implements LoginLogService {
         loginLog.setUserAgent(userAgent);
         loginLog.setBrowser(UserAgentUtils.resolveBrowser(userAgent));
         loginLog.setOs(UserAgentUtils.resolveOs(userAgent));
+        loginLog.setDeviceType(resolveDeviceType(request));
         loginLog.setStatus(status);
         loginLog.setMessage(truncateMessage(message, status != null && status == 1 ? "登录成功" : "登录失败"));
         loginLog.setLoginTime(LocalDateTime.now());
@@ -89,6 +91,7 @@ public class LoginLogServiceImpl implements LoginLogService {
         response.setUserAgent(loginLog.getUserAgent());
         response.setBrowser(loginLog.getBrowser());
         response.setOs(loginLog.getOs());
+        response.setDeviceType(loginLog.getDeviceType());
         response.setStatus(loginLog.getStatus());
         response.setMessage(loginLog.getMessage());
         response.setLoginTime(loginLog.getLoginTime());
@@ -102,5 +105,13 @@ public class LoginLogServiceImpl implements LoginLogService {
 
     private String defaultString(String value) {
         return value == null ? "" : value;
+    }
+
+    private String resolveDeviceType(HttpServletRequest request) {
+        if (request == null) {
+            return "web";
+        }
+        String deviceType = defaultString(request.getHeader(DEVICE_TYPE_HEADER)).trim().toLowerCase();
+        return StringUtils.hasText(deviceType) ? deviceType : "web";
     }
 }

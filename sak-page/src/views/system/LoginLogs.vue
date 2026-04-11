@@ -40,6 +40,11 @@
         <template #loginLocation="{ record }">
           <span>{{ record.loginLocation || '-' }}</span>
         </template>
+        <template #deviceType="{ record }">
+          <a-tag :color="dictStore.getDictTagColor('sys_device_type', record.deviceType)">
+            {{ dictStore.getDictLabel('sys_device_type', record.deviceType) || record.deviceType || '-' }}
+          </a-tag>
+        </template>
         <template #loginTime="{ record }">
           {{ formatDateTime(record.loginTime) }}
         </template>
@@ -57,6 +62,9 @@
         </a-descriptions-item>
         <a-descriptions-item label="登录IP">{{ currentLog.loginIp || '-' }}</a-descriptions-item>
         <a-descriptions-item label="登录属地">{{ currentLog.loginLocation || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="设备类型">
+          {{ dictStore.getDictLabel('sys_device_type', currentLog.deviceType) || currentLog.deviceType || '-' }}
+        </a-descriptions-item>
         <a-descriptions-item label="浏览器">{{ currentLog.browser || '-' }}</a-descriptions-item>
         <a-descriptions-item label="操作系统">{{ currentLog.os || '-' }}</a-descriptions-item>
         <a-descriptions-item label="登录时间">{{ formatDateTime(currentLog.loginTime) }}</a-descriptions-item>
@@ -90,6 +98,7 @@ const columns = [
   { title: '登录账号', dataIndex: 'username', width: 140 },
   { title: '登录IP', dataIndex: 'loginIp', width: 150 },
   { title: '登录属地', slotName: 'loginLocation' },
+  { title: '设备', slotName: 'deviceType', width: 100 },
   { title: '浏览器', dataIndex: 'browser', width: 120 },
   { title: '操作系统', dataIndex: 'os', width: 120 },
   { title: '结果', slotName: 'status', width: 90 },

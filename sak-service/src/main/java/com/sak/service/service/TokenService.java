@@ -29,6 +29,7 @@ import java.util.UUID;
 @Service
 public class TokenService {
 
+    private static final String DEVICE_TYPE_HEADER = "X-Client-Device";
     private static final String ACCESS_TOKEN_PREFIX = "auth:access:";
     private static final String REFRESH_TOKEN_PREFIX = "auth:refresh:";
     private static final String USER_PREFIX = "auth:user:";
@@ -64,7 +65,8 @@ public class TokenService {
         SysUser user = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getUsername, userDetails.getUsername())
                 .last("limit 1"));
-        invalidateExistingSessions(user, userDetails.getUsername());
+        String deviceType = resolveDeviceType(request);
+        invalidateExistingSessions(user, userDetails.getUsername(), deviceType);
 
         String sessionId = UUID.randomUUID().toString();
         String accessToken = jwtUtils.generateAccessToken(userDetails.getUsername());
@@ -87,6 +89,7 @@ public class TokenService {
         sessionInfo.put("nickName", user == null ? userDetails.getUsername() : defaultString(user.getNickName(), userDetails.getUsername()));
         sessionInfo.put("ip", resolveClientIp(request));
         sessionInfo.put("userAgent", resolveUserAgent(request));
+        sessionInfo.put("deviceType", deviceType);
         sessionInfo.put("loginTime", currentTime);
         sessionInfo.put("lastActiveTime", currentTime);
         sessionInfo.put("accessToken", accessToken);
@@ -107,7 +110,7 @@ public class TokenService {
         return tokens;
     }
 
-    private void invalidateExistingSessions(SysUser user, String username) {
+    private void invalidateExistingSessions(SysUser user, String username, String deviceType) {
         if (user == null || user.getId() == null) {
             redisTemplate.delete(USER_PREFIX + username);
             return;
@@ -126,7 +129,15 @@ public class TokenService {
             }
             String sessionId = String.valueOf(rawSessionId);
             if (StringUtils.hasText(sessionId)) {
-                deleteSession(sessionId);
+                Map<String, String> sessionInfo = getSessionInfo(sessionId);
+                if (sessionInfo.isEmpty()) {
+                    redisTemplate.opsForSet().remove(userSessionsKey, sessionId);
+                    continue;
+                }
+                String sessionDeviceType = sessionInfo.get("deviceType");
+                if (deviceType.equals(sessionDeviceType)) {
+                    deleteSession(sessionId);
+                }
             }
         }
     }
@@ -371,6 +382,17 @@ public class TokenService {
             return "";
         }
         return defaultString(request.getHeader("User-Agent"), "");
+    }
+
+    private String resolveDeviceType(HttpServletRequest request) {
+        if (request == null) {
+            return "web";
+        }
+        String deviceType = defaultString(request.getHeader(DEVICE_TYPE_HEADER), "").trim().toLowerCase();
+        if (!StringUtils.hasText(deviceType)) {
+            return "web";
+        }
+        return deviceType;
     }
 
     private Long parseLong(String value) {

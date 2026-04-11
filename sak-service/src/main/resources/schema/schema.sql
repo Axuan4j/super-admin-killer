@@ -272,6 +272,7 @@ CREATE TABLE `sys_login_log`
     `user_agent`     varchar(1000) DEFAULT NULL COMMENT '用户代理',
     `browser`        varchar(100)  DEFAULT NULL COMMENT '浏览器',
     `os`             varchar(100)  DEFAULT NULL COMMENT '操作系统',
+    `device_type`    varchar(32)   DEFAULT NULL COMMENT '设备类型',
     `status`         tinyint(1)    NOT NULL DEFAULT '1' COMMENT '登录状态（1成功 0失败）',
     `message`        varchar(500)  DEFAULT NULL COMMENT '提示消息',
     `login_time`     datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
