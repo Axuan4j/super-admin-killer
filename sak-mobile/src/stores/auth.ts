@@ -30,6 +30,9 @@ interface AuthState {
   pendingMfaUsername: string | null
 }
 
+const MFA_CHALLENGE_TOKEN_KEY = 'mobileMfaChallengeToken'
+const MFA_CHALLENGE_USERNAME_KEY = 'mobileMfaChallengeUsername'
+
 let fetchUserInfoPromise: Promise<UserInfo | null> | null = null
 
 export const useAuthStore = defineStore('mobile-auth', {
@@ -37,8 +40,8 @@ export const useAuthStore = defineStore('mobile-auth', {
     accessToken: localStorage.getItem('accessToken'),
     refreshToken: localStorage.getItem('refreshToken'),
     userInfo: null,
-    pendingMfaChallengeToken: null,
-    pendingMfaUsername: null
+    pendingMfaChallengeToken: sessionStorage.getItem(MFA_CHALLENGE_TOKEN_KEY),
+    pendingMfaUsername: sessionStorage.getItem(MFA_CHALLENGE_USERNAME_KEY)
   }),
   getters: {
     isLoggedIn: (state) => !!state.accessToken && !!localStorage.getItem('accessToken'),
@@ -48,6 +51,8 @@ export const useAuthStore = defineStore('mobile-auth', {
     syncSession() {
       this.accessToken = localStorage.getItem('accessToken')
       this.refreshToken = localStorage.getItem('refreshToken')
+      this.pendingMfaChallengeToken = sessionStorage.getItem(MFA_CHALLENGE_TOKEN_KEY)
+      this.pendingMfaUsername = sessionStorage.getItem(MFA_CHALLENGE_USERNAME_KEY)
       if (!this.accessToken) {
         this.userInfo = null
         fetchUserInfoPromise = null
@@ -72,6 +77,8 @@ export const useAuthStore = defineStore('mobile-auth', {
         localStorage.removeItem('refreshToken')
         this.pendingMfaChallengeToken = data.challengeToken
         this.pendingMfaUsername = data.username
+        sessionStorage.setItem(MFA_CHALLENGE_TOKEN_KEY, data.challengeToken)
+        sessionStorage.setItem(MFA_CHALLENGE_USERNAME_KEY, data.username || '')
         return data
       }
 
@@ -161,6 +168,8 @@ export const useAuthStore = defineStore('mobile-auth', {
     clearMfaChallenge() {
       this.pendingMfaChallengeToken = null
       this.pendingMfaUsername = null
+      sessionStorage.removeItem(MFA_CHALLENGE_TOKEN_KEY)
+      sessionStorage.removeItem(MFA_CHALLENGE_USERNAME_KEY)
     }
   }
 })

@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCaptcha } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
@@ -88,6 +88,16 @@ const form = reactive({
   captchaId: '',
   mfaCode: ''
 })
+
+watch(
+  () => authStore.pendingMfaUsername,
+  (value) => {
+    if (value) {
+      form.username = value
+    }
+  },
+  { immediate: true }
+)
 
 const normalizeCaptchaImage = (value?: string) => {
   if (!value) {
@@ -152,7 +162,10 @@ const handleBackToLogin = async () => {
 }
 
 onMounted(() => {
-  refreshCaptcha()
+  authStore.syncSession()
+  if (!authStore.requiresMfa) {
+    refreshCaptcha()
+  }
 })
 </script>
 
