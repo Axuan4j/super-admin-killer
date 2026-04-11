@@ -9,6 +9,8 @@ public interface NotificationRecordService {
 
     void saveRecord(NotificationRecordDetailResponse record);
 
+    void updateRecord(NotificationRecordDetailResponse record);
+
     PageResponse<NotificationRecordResponse> listRecords(NotificationRecordQueryRequest request);
 
     NotificationRecordDetailResponse getRecordDetail(Long id);

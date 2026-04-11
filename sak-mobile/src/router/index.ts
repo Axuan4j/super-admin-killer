@@ -28,10 +28,10 @@ const router = createRouter({
           meta: { title: '待办告警', tab: 'alerts' }
         },
         {
-          path: 'messages',
-          name: 'messages',
-          component: () => import('@/views/messages/MessagesView.vue'),
-          meta: { title: '消息中心', tab: 'messages' }
+          path: 'monitor',
+          name: 'monitor',
+          component: () => import('@/views/monitor/MonitorView.vue'),
+          meta: { title: '监控中心', tab: 'monitor' }
         },
         {
           path: 'me',

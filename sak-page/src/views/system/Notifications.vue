@@ -4,7 +4,7 @@
       <a-tabs v-model:active-key="activeTab" lazy-load>
         <a-tab-pane key="send" title="发送通知">
           <a-alert type="info" show-icon class="info-banner">
-            可同时勾选站内信、邮件、WxPusher 多种渠道。站内信会实时刷新消息中心；邮件依赖邮箱配置；WxPusher 依赖用户 UID 和服务端 AppToken。
+            可同时勾选站内信、邮件、WxPusher 多种渠道。提交后会走 Spring Event 异步发送，发送结果会回写到发送记录中。
           </a-alert>
 
           <a-form :model="form" layout="vertical" class="notification-form">
@@ -69,7 +69,7 @@
             <a-button :loading="loadingRecipients" @click="loadRecipients">刷新用户</a-button>
             <a-popconfirm
               v-if="authStore.hasPermission('system:notification:send')"
-              content="确认发送这条通知？发送后将立即触达所选用户和渠道。"
+              content="确认发送这条通知？提交后会异步分发到所选渠道。"
               @ok="handleSubmit"
             >
               <a-button
@@ -336,7 +336,7 @@ const handleSubmit = async () => {
       title: form.title.trim(),
       content: form.content.trim()
     })
-    Message.success(`推送完成：目标 ${result.recipientCount} 人，至少成功触达 ${result.successUserCount} 人`)
+    Message.success(`通知已提交：目标 ${result.recipientCount} 人，正在异步发送`)
     resetForm()
     activeTab.value = 'records'
     recordPageNum.value = 1
@@ -411,6 +411,8 @@ const resolveRecordStatusText = (status?: string) => {
   switch (status) {
     case 'SUCCESS':
       return '成功'
+    case 'PENDING':
+      return '发送中'
     case 'PARTIAL':
       return '部分成功'
     case 'FAILED':
@@ -424,6 +426,8 @@ const resolveRecordStatusColor = (status?: string) => {
   switch (status) {
     case 'SUCCESS':
       return 'green'
+    case 'PENDING':
+      return 'arcoblue'
     case 'PARTIAL':
       return 'orange'
     case 'FAILED':
@@ -437,6 +441,8 @@ const resolveChannelStatusText = (status?: string) => {
   switch (status) {
     case 'SUCCESS':
       return '成功'
+    case 'PENDING':
+      return '发送中'
     case 'SKIPPED':
       return '跳过'
     case 'FAILED':
@@ -450,6 +456,8 @@ const resolveChannelDetailColor = (status?: string) => {
   switch (status) {
     case 'SUCCESS':
       return 'green'
+    case 'PENDING':
+      return 'arcoblue'
     case 'SKIPPED':
       return 'orange'
     case 'FAILED':

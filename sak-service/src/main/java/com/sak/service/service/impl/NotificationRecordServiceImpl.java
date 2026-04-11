@@ -42,6 +42,23 @@ public class NotificationRecordServiceImpl implements NotificationRecordService 
     @Override
     public void saveRecord(NotificationRecordDetailResponse record) {
         SysNotificationRecord entity = new SysNotificationRecord();
+        fillEntity(entity, record);
+        sysNotificationRecordMapper.insert(entity);
+        record.setId(entity.getId());
+    }
+
+    @Override
+    public void updateRecord(NotificationRecordDetailResponse record) {
+        if (record.getId() == null) {
+            throw new IllegalArgumentException("发送记录ID不能为空");
+        }
+        SysNotificationRecord entity = new SysNotificationRecord();
+        entity.setId(record.getId());
+        fillEntity(entity, record);
+        sysNotificationRecordMapper.updateById(entity);
+    }
+
+    private void fillEntity(SysNotificationRecord entity, NotificationRecordDetailResponse record) {
         entity.setSenderName(record.getSenderName());
         entity.setTitle(record.getTitle());
         entity.setContent(record.getContent());
@@ -53,8 +70,6 @@ public class NotificationRecordServiceImpl implements NotificationRecordService 
         entity.setChannelSuccessCountsJson(writeJson(record.getChannelSuccessCounts()));
         entity.setChannelSkipCountsJson(writeJson(record.getChannelSkipCounts()));
         entity.setRecipientDetailsJson(writeJson(record.getRecipientDetails()));
-        sysNotificationRecordMapper.insert(entity);
-        record.setId(entity.getId());
     }
 
     @Override

@@ -1,5 +1,14 @@
 <template>
   <div class="mobile-shell">
+    <header class="mobile-topbar">
+      <div class="mobile-topbar__content">
+        <div>
+          <div class="mobile-topbar__eyebrow">Superkiller Mobile</div>
+          <div class="mobile-topbar__title">{{ pageTitle }}</div>
+        </div>
+      </div>
+    </header>
+
     <main class="mobile-main">
       <RouterView />
     </main>
@@ -28,12 +37,13 @@ const router = useRouter()
 
 const tabs = [
   { label: '工作台', value: 'workbench', to: '/' },
-  { label: '告警', value: 'alerts', to: '/alerts' },
-  { label: '消息', value: 'messages', to: '/messages' },
+  { label: '告警/消息', value: 'alerts', to: '/alerts' },
+  { label: '监控', value: 'monitor', to: '/monitor' },
   { label: '我的', value: 'me', to: '/me' }
 ]
 
 const currentTab = computed(() => String(route.meta.tab ?? 'workbench'))
+const pageTitle = computed(() => String(route.meta.title ?? '移动工作台'))
 
 const navigate = (to: string) => {
   if (route.path !== to) {
@@ -46,6 +56,36 @@ const navigate = (to: string) => {
 .mobile-shell {
   min-height: 100vh;
   padding: env(safe-area-inset-top) 0 calc(84px + env(safe-area-inset-bottom));
+}
+
+.mobile-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  padding: 14px 16px 10px;
+  backdrop-filter: blur(16px);
+}
+
+.mobile-topbar__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mobile-topbar__eyebrow {
+  color: var(--sak-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-topbar__title {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .mobile-main {
