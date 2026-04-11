@@ -16,6 +16,20 @@ export interface FileRecordItem {
   createTime?: string
 }
 
+export interface FileShareLinkPayload {
+  permanent?: boolean
+  expireDays?: number
+}
+
+export interface FileShareLinkResult {
+  fileId: number
+  fileName: string
+  shareUrl: string
+  permanent: boolean
+  expireDays?: number
+  expireAt?: string
+}
+
 export const getFileRecords = (params: {
   bizType?: string
   keyword?: string
@@ -44,3 +58,6 @@ export const uploadCenterFile = (payload: { file: File; bizType?: string; remark
 }
 
 export const deleteCenterFile = (id: number) => request.delete<unknown, void>(`/system/files/${id}`)
+
+export const createFileShareLink = (id: number, payload: FileShareLinkPayload) =>
+  request.post<unknown, FileShareLinkResult>(`/system/files/${id}/share`, payload)

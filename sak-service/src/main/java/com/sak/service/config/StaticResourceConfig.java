@@ -56,6 +56,22 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         return normalizeAccessPath(storageProperties.getAccessPath());
     }
 
+    public String getShareSecret() {
+        return storageProperties.getShare().getSecret();
+    }
+
+    public String getSharePublicBaseUrl() {
+        return storageProperties.getShare().getPublicBaseUrl();
+    }
+
+    public int getShareDefaultExpireDays() {
+        return storageProperties.getShare().getDefaultExpireDays() == null ? 7 : storageProperties.getShare().getDefaultExpireDays();
+    }
+
+    public int getShareMaxExpireDays() {
+        return storageProperties.getShare().getMaxExpireDays() == null ? 3650 : storageProperties.getShare().getMaxExpireDays();
+    }
+
     public Path createExportFile(String relativePath) {
         return createStorageFile(relativePath, "Export file path is outside the configured root directory", "Failed to initialize export storage directory");
     }

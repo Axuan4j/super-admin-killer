@@ -108,12 +108,12 @@ public class AuthController {
             return Result.error("refreshToken has been revoked");
         }
 
-        String newAccessToken = tokenService.refreshAccessToken(refreshToken);
-        if (newAccessToken == null) {
+        Map<String, String> newTokens = tokenService.refreshTokens(refreshToken);
+        if (newTokens == null) {
             return Result.error("refresh failed");
         }
 
-        return Result.success(Map.of("accessToken", newAccessToken));
+        return Result.success(newTokens);
     }
 
     @PostMapping("/logout")

@@ -10,4 +10,13 @@ public class LocalStorageProperties {
     private String avatarDir = "avatars";
     private String fileDir = "files";
     private String accessPath = "/storage/";
+    private Share share = new Share();
+
+    @Data
+    public static class Share {
+        private String secret = "superkiller-file-share-secret-change-me";
+        private String publicBaseUrl = "";
+        private Integer defaultExpireDays = 7;
+        private Integer maxExpireDays = 3650;
+    }
 }

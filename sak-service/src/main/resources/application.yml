@@ -1,3 +1,72 @@
+server:
+  port: ${SERVER.PORT:8080}
+
 spring:
+  application:
+    name: super-killer-backend
   profiles:
-    active: aliyun
+    active: local
+  mail:
+    host: ${MAIL.HOST:}
+    port: ${MAIL.PORT:587}
+    username: ${MAIL.USERNAME:}
+    password: ${MAIL.PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+jwt:
+  secret: ${JWT.SECRET:3MeKau+j794vsIX2jLgLaWYLAzd39ugtcNfNR5ScJX0=}
+  access-token-expiration: ${JWT.AT.EXPIRE:10m}
+  refresh-token-expiration: ${JWT.RT.EXPIRE:7d}
+
+storage:
+  root-dir: ./storage
+  avatar-dir: avatars
+  file-dir: files
+  access-path: /storage/
+  share:
+    secret: ${STORAGE.SHARE.SECRET:superkiller-file-share-secret-change-me}
+    public-base-url: ${STORAGE.SHARE.PUBLIC_BASE_URL:}
+    default-expire-days: ${STORAGE.SHARE.DEFAULT_EXPIRE_DAYS:7}
+    max-expire-days: ${STORAGE.SHARE.MAX_EXPIRE_DAYS:3650}
+
+cache:
+  multilevel:
+    local-expire-after-write: 5m
+    local-maximum-size: 1000
+    redis-time-to-live: 30m
+    redis-key-prefix: "sak:cache:"
+
+logging:
+  level:
+    root: info
+    com:
+      sak:
+        service:
+          mapper: debug
+
+notification:
+  wxpusher:
+    enabled: ${WXPUSHER.ENABLED:false}
+    app-token: ${WXPUSHER.APP_TOKEN:}
+    base-url: ${WXPUSHER.BASE_URL:https://wxpusher.zjiecode.com}
+    content-type: ${WXPUSHER.CONTENT_TYPE:1}
+
+ip2region:
+  enabled: ${IP2REGION.ENABLED:true}
+  ipv4-db: ${IP2REGION.IPV4_DB:./ip2region/ip2region_v4.xdb}
+  ipv6-db: ${IP2REGION.IPV6_DB:}
+  ipv4-classpath: ${IP2REGION.IPV4_CLASSPATH:}
+  ipv6-classpath: ${IP2REGION.IPV6_CLASSPATH:}

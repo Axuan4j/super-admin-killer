@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class TokenService {
@@ -205,7 +204,7 @@ public class TokenService {
         return StringUtils.hasText(sessionId) && redisTemplate.hasKey(sessionKey(sessionId));
     }
 
-    public String refreshAccessToken(String refreshToken) {
+    public Map<String, String> refreshTokens(String refreshToken) {
         String sessionId = getSessionIdByRefreshToken(refreshToken);
         if (!StringUtils.hasText(sessionId)) {
             return null;
@@ -219,17 +218,27 @@ public class TokenService {
         }
 
         String oldAccessToken = sessionInfo.get("accessToken");
+        String oldRefreshToken = sessionInfo.get("refreshToken");
         String newAccessToken = jwtUtils.generateAccessToken(username);
+        String newRefreshToken = jwtUtils.generateRefreshToken(username);
 
         if (StringUtils.hasText(oldAccessToken)) {
             redisTemplate.delete(accessKey(oldAccessToken));
         }
+        if (StringUtils.hasText(oldRefreshToken)) {
+            redisTemplate.delete(refreshKey(oldRefreshToken));
+        }
         redisTemplate.opsForValue().set(accessKey(newAccessToken), sessionId, accessTokenExpiration);
+        redisTemplate.opsForValue().set(refreshKey(newRefreshToken), sessionId, refreshTokenExpiration);
         redisTemplate.opsForHash().put(sessionKey(sessionId), "accessToken", newAccessToken);
+        redisTemplate.opsForHash().put(sessionKey(sessionId), "refreshToken", newRefreshToken);
         redisTemplate.opsForHash().put(sessionKey(sessionId), "lastActiveTime", now());
-        redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration.toSeconds(), TimeUnit.SECONDS);
+        extendSessionLifetime(sessionId, sessionInfo);
 
-        return newAccessToken;
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", newAccessToken);
+        tokens.put("refreshToken", newRefreshToken);
+        return tokens;
     }
 
     public String getSessionIdByAccessToken(String token) {
@@ -296,12 +305,30 @@ public class TokenService {
         if (!redisTemplate.hasKey(sessionKey(sessionId))) {
             return;
         }
+        Map<String, String> sessionInfo = getSessionInfo(sessionId);
+        if (sessionInfo.isEmpty()) {
+            return;
+        }
         redisTemplate.opsForHash().put(sessionKey(sessionId), "lastActiveTime", now());
         if (request != null) {
             redisTemplate.opsForHash().put(sessionKey(sessionId), "ip", resolveClientIp(request));
             redisTemplate.opsForHash().put(sessionKey(sessionId), "userAgent", resolveUserAgent(request));
         }
+        extendSessionLifetime(sessionId, sessionInfo);
+    }
+
+    private void extendSessionLifetime(String sessionId, Map<String, String> sessionInfo) {
         redisTemplate.expire(sessionKey(sessionId), refreshTokenExpiration);
+
+        String username = sessionInfo.get("username");
+        if (StringUtils.hasText(username)) {
+            redisTemplate.expire(USER_PREFIX + username, refreshTokenExpiration);
+        }
+
+        String userId = sessionInfo.get("userId");
+        if (StringUtils.hasText(userId)) {
+            redisTemplate.expire(USER_SESSIONS_PREFIX + userId, refreshTokenExpiration);
+        }
     }
 
     private Map<String, String> getSessionInfo(String sessionId) {

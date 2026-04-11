@@ -25,6 +25,11 @@ type RefreshSubscriber = {
 
 let refreshSubscribers: RefreshSubscriber[] = []
 
+type RefreshTokenResult = {
+    accessToken: string
+    refreshToken: string
+}
+
 const subscribeTokenRefresh = (resolve: (token: string) => void, reject: (error: unknown) => void) => {
     refreshSubscribers.push({resolve, reject})
 }
@@ -82,10 +87,13 @@ const refreshAccessToken = async (): Promise<string | null> => {
                 timeout: 10000
             }
         )
-        const {code, data} = res.data
-        if (code === 200 && data.accessToken) {
+        const {code, data} = res.data as { code: number; data?: RefreshTokenResult }
+        if (code === 200 && data?.accessToken && data?.refreshToken) {
             const newAccessToken = data.accessToken
             localStorage.setItem('accessToken', newAccessToken)
+            localStorage.setItem('refreshToken', data.refreshToken)
+            const { useAuthStore } = await import('../stores/auth')
+            useAuthStore().syncSession()
             sessionExpiredMessageShown = false
             return newAccessToken
         }

@@ -5,12 +5,17 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.sak.service.config.StaticResourceConfig;
 import com.sak.service.dto.FileRecordQueryRequest;
 import com.sak.service.dto.FileRecordResponse;
+import com.sak.service.dto.FileShareLinkRequest;
+import com.sak.service.dto.FileShareLinkResponse;
 import com.sak.service.dto.PageResponse;
+import com.sak.service.dto.PublicFilePayload;
 import com.sak.service.entity.SysFileRecord;
 import com.sak.service.mapper.SysFileRecordMapper;
 import com.sak.service.service.FileCenterService;
+import com.sak.service.util.FileShareSignatureUtil;
 import com.sak.service.util.PageUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -23,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -48,6 +54,9 @@ public class FileCenterServiceImpl implements FileCenterService {
 
     private final SysFileRecordMapper sysFileRecordMapper;
     private final StaticResourceConfig staticResourceConfig;
+
+    @Value("${server.port:8080}")
+    private String serverPort;
 
     @Override
     public PageResponse<FileRecordResponse> listFiles(FileRecordQueryRequest request) {
@@ -123,6 +132,37 @@ public class FileCenterServiceImpl implements FileCenterService {
         sysFileRecordMapper.deleteById(id);
     }
 
+    @Override
+    public FileShareLinkResponse createShareLink(Long id, FileShareLinkRequest request) {
+        SysFileRecord record = requireRecord(id);
+        FileShareLinkRequest resolvedRequest = request == null ? new FileShareLinkRequest() : request;
+        boolean permanent = Boolean.TRUE.equals(resolvedRequest.getPermanent());
+        int expireDays = resolveExpireDays(resolvedRequest.getExpireDays(), permanent);
+        Long expires = permanent ? null : System.currentTimeMillis() + expireDays * 24L * 60L * 60L * 1000L;
+        String signature = buildSignature(id, expires);
+
+        FileShareLinkResponse response = new FileShareLinkResponse();
+        response.setFileId(record.getId());
+        response.setFileName(record.getFileName());
+        response.setPermanent(permanent);
+        response.setExpireDays(permanent ? null : expireDays);
+        response.setExpireAt(expires == null ? null : LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(expires), ZoneId.systemDefault()));
+        response.setShareUrl(buildShareUrl(id, expires, signature));
+        return response;
+    }
+
+    @Override
+    public PublicFilePayload loadSharedFile(Long id, Long expires, String signature) {
+        SysFileRecord record = requireRecord(id);
+        validateShareSignature(id, expires, signature);
+
+        Path filePath = staticResourceConfig.resolveStorageRelativePath(record.getFilePath());
+        if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+            throw new IllegalArgumentException("分享文件不存在");
+        }
+        return new PublicFilePayload(filePath, record.getFileName(), record.getContentType(), record.getFileSize());
+    }
+
     private SysFileRecord requireRecord(Long id) {
         SysFileRecord record = sysFileRecordMapper.selectById(id);
         if (record == null) {
@@ -146,6 +186,58 @@ public class FileCenterServiceImpl implements FileCenterService {
         response.setRemark(record.getRemark());
         response.setCreateTime(record.getCreateTime());
         return response;
+    }
+
+    private int resolveExpireDays(Integer expireDays, boolean permanent) {
+        if (permanent) {
+            return 0;
+        }
+        int defaultExpireDays = Math.max(1, staticResourceConfig.getShareDefaultExpireDays());
+        int maxExpireDays = Math.max(defaultExpireDays, staticResourceConfig.getShareMaxExpireDays());
+        int requestedDays = expireDays == null ? defaultExpireDays : expireDays;
+        if (requestedDays < 1 || requestedDays > maxExpireDays) {
+            throw new IllegalArgumentException("有效天数必须在1到" + maxExpireDays + "天之间");
+        }
+        return requestedDays;
+    }
+
+    private void validateShareSignature(Long id, Long expires, String signature) {
+        if (!StringUtils.hasText(signature)) {
+            throw new IllegalArgumentException("缺少分享签名");
+        }
+        if (expires != null && expires < System.currentTimeMillis()) {
+            throw new IllegalArgumentException("分享链接已过期");
+        }
+        String expectedSignature = buildSignature(id, expires);
+        if (!expectedSignature.equals(signature)) {
+            throw new IllegalArgumentException("分享签名无效");
+        }
+    }
+
+    private String buildShareUrl(Long id, Long expires, String signature) {
+        StringBuilder url = new StringBuilder();
+        url.append(resolvePublicBaseUrl())
+                .append("/system/files/public/")
+                .append(id)
+                .append("?signature=")
+                .append(signature);
+        if (expires != null) {
+            url.append("&expires=").append(expires);
+        }
+        return url.toString();
+    }
+
+    private String resolvePublicBaseUrl() {
+        String configuredBaseUrl = staticResourceConfig.getSharePublicBaseUrl();
+        if (StringUtils.hasText(configuredBaseUrl)) {
+            return configuredBaseUrl.replaceAll("/+$", "");
+        }
+        return "http://localhost:" + serverPort;
+    }
+
+    private String buildSignature(Long id, Long expires) {
+        String payload = id + ":" + (expires == null ? "permanent" : expires);
+        return FileShareSignatureUtil.sign(staticResourceConfig.getShareSecret(), payload);
     }
 
     private void validateFile(MultipartFile file) {

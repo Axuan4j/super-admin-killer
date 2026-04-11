@@ -48,6 +48,9 @@
             <a-button type="text" size="small" @click="handleDownload(record.downloadUrl)">
               下载
             </a-button>
+            <a-button type="text" size="small" @click="openShareModal(record)">
+              外链
+            </a-button>
             <a-popconfirm
               v-if="authStore.hasPermission('system:file:remove')"
               content="确认删除这条文件记录并移除物理文件？"
@@ -83,19 +86,54 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <a-modal
+      v-model:visible="shareVisible"
+      title="生成外链"
+      :ok-loading="sharing"
+      :ok-text="shareResultUrl ? '重新生成' : '生成外链'"
+      :on-before-ok="handleBeforeCreateShareLink"
+      @cancel="resetShareState"
+    >
+      <a-form :model="shareForm" layout="vertical">
+        <a-form-item label="文件">
+          <a-input :model-value="shareTarget?.fileName || '-'" readonly />
+        </a-form-item>
+        <a-form-item label="链接类型">
+          <a-radio-group v-model="shareForm.permanent">
+            <a-radio :value="false">限时有效</a-radio>
+            <a-radio :value="true">永久有效</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item v-if="!shareForm.permanent" label="有效天数">
+          <a-input-number v-model="shareForm.expireDays" :min="1" :max="3650" style="width: 180px" />
+        </a-form-item>
+        <a-form-item label="外链地址">
+          <a-textarea :model-value="shareResultUrl" readonly :auto-size="{ minRows: 3, maxRows: 5 }" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { deleteCenterFile, getFileRecords, uploadCenterFile, type FileRecordItem } from '@/api/fileCenter'
+import {
+  createFileShareLink,
+  deleteCenterFile,
+  getFileRecords,
+  uploadCenterFile,
+  type FileRecordItem
+} from '@/api/fileCenter'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const loading = ref(false)
 const uploading = ref(false)
 const uploadVisible = ref(false)
+const shareVisible = ref(false)
+const sharing = ref(false)
 const records = ref<FileRecordItem[]>([])
 const keyword = ref('')
 const operatorKeyword = ref('')
@@ -105,11 +143,20 @@ const pageSize = ref(10)
 const total = ref(0)
 const selectedFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const shareTarget = ref<FileRecordItem | null>(null)
+const shareResult = ref('')
 
 const uploadForm = reactive({
   bizType: 'COMMON',
   remark: ''
 })
+
+const shareForm = reactive({
+  permanent: false,
+  expireDays: 7
+})
+
+const shareResultUrl = computed(() => shareResult.value)
 
 const columns = [
   { title: 'ID', dataIndex: 'id', width: 80 },
@@ -210,6 +257,13 @@ const resetUploadState = () => {
   }
 }
 
+const resetShareState = () => {
+  shareTarget.value = null
+  shareForm.permanent = false
+  shareForm.expireDays = 7
+  shareResult.value = ''
+}
+
 const openFilePicker = () => {
   fileInputRef.value?.click()
 }
@@ -239,6 +293,42 @@ const handleUpload = async () => {
   } finally {
     uploading.value = false
   }
+}
+
+const openShareModal = (record: FileRecordItem) => {
+  resetShareState()
+  shareTarget.value = record
+  shareVisible.value = true
+}
+
+const handleCreateShareLink = async () => {
+  if (!shareTarget.value) {
+    Message.warning('请选择要生成外链的文件')
+    return false
+  }
+  sharing.value = true
+  try {
+    const result = await createFileShareLink(shareTarget.value.id, {
+      permanent: shareForm.permanent,
+      expireDays: shareForm.permanent ? undefined : shareForm.expireDays
+    })
+    shareResult.value = result.shareUrl
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(result.shareUrl)
+      Message.success('外链已生成并复制到剪贴板')
+    } else {
+      Message.success('外链已生成')
+    }
+    return false
+  } catch (error) {
+    return false
+  } finally {
+    sharing.value = false
+  }
+}
+
+const handleBeforeCreateShareLink = async () => {
+  return await handleCreateShareLink()
 }
 
 const handleDownload = (downloadUrl?: string) => {
