@@ -7,9 +7,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-sak-page/node_modules
-sak-mobile/node_modules
-sak-service/target
+**/node_modules
+**/target
 dist
 dist-ssr
 *.local
