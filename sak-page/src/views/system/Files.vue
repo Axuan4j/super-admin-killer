@@ -4,9 +4,9 @@
       <template #extra>
         <a-space>
           <a-button
-            v-if="authStore.hasPermission('system:file:upload')"
-            type="primary"
-            @click="openUploadModal"
+              v-if="authStore.hasPermission('system:file:upload')"
+              type="primary"
+              @click="openUploadModal"
           >
             上传文件
           </a-button>
@@ -15,30 +15,37 @@
       </template>
 
       <a-space class="toolbar">
-        <a-input v-model="keyword" allow-clear placeholder="搜索文件名/路径/备注" style="width: 260px" />
-        <a-input v-model="operatorKeyword" allow-clear placeholder="上传人" style="width: 180px" />
-        <a-input v-model="bizTypeKeyword" allow-clear placeholder="业务类型" style="width: 180px" />
+        <a-input v-model="keyword" allow-clear placeholder="搜索文件名/路径/备注" style="width: 260px"/>
+        <a-input v-model="operatorKeyword" allow-clear placeholder="上传人" style="width: 180px"/>
+        <a-select v-model="bizTypeKeyword" allow-clear placeholder="业务类型" style="width: 180px">
+          <a-option v-for="item in fileBizTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</a-option>
+        </a-select>
         <a-button type="primary" :loading="loading" @click="handleSearch">查询</a-button>
         <a-button :loading="loading" @click="handleReset">重置</a-button>
       </a-space>
 
       <a-table
-        :columns="columns"
-        :data="records"
-        :loading="loading"
-        :pagination="{
+          :columns="columns"
+          :data="records"
+          :loading="loading"
+          :pagination="{
           total,
           current: currentPage,
           pageSize,
           showTotal: true,
           showPageSize: true
         }"
-        row-key="id"
-        @page-change="handlePageChange"
-        @page-size-change="handlePageSizeChange"
+          row-key="id"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
       >
         <template #fileSize="{ record }">
           {{ formatFileSize(record.fileSize) }}
+        </template>
+        <template #bizType="{ record }">
+          <a-tag :color="dictStore.getDictTagColor('sys_file_biz_type', record.bizType, 'gray')">
+            {{ dictStore.getDictLabel('sys_file_biz_type', record.bizType, record.bizType || '-') }}
+          </a-tag>
         </template>
         <template #createTime="{ record }">
           {{ formatDateTime(record.createTime) }}
@@ -52,9 +59,9 @@
               外链
             </a-button>
             <a-popconfirm
-              v-if="authStore.hasPermission('system:file:remove')"
-              content="确认删除这条文件记录并移除物理文件？"
-              @ok="handleDelete(record.id)"
+                v-if="authStore.hasPermission('system:file:remove')"
+                content="确认删除这条文件记录并移除物理文件？"
+                @ok="handleDelete(record.id)"
             >
               <a-button type="text" size="small" status="danger">删除</a-button>
             </a-popconfirm>
@@ -64,21 +71,23 @@
     </a-card>
 
     <a-modal
-      v-model:visible="uploadVisible"
-      title="上传文件"
-      :ok-loading="uploading"
-      @ok="handleUpload"
-      @cancel="resetUploadState"
+        v-model:visible="uploadVisible"
+        title="上传文件"
+        :ok-loading="uploading"
+        @ok="handleUpload"
+        @cancel="resetUploadState"
     >
-      <a-form :model="uploadForm" layout="vertical">
+        <a-form :model="uploadForm" layout="vertical">
         <a-form-item label="业务类型">
-          <a-input v-model="uploadForm.bizType" placeholder="例如 COMMON、NOTICE、RESOURCE" />
+          <a-select v-model="uploadForm.bizType" placeholder="选择业务类型">
+            <a-option v-for="item in fileBizTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</a-option>
+          </a-select>
         </a-form-item>
         <a-form-item label="备注">
-          <a-textarea v-model="uploadForm.remark" :max-length="500" show-word-limit />
+          <a-textarea v-model="uploadForm.remark" :max-length="500" show-word-limit/>
         </a-form-item>
         <a-form-item label="上传文件">
-          <input ref="fileInputRef" type="file" class="hidden-input" @change="handleFileChange" />
+          <input ref="fileInputRef" type="file" class="hidden-input" @change="handleFileChange"/>
           <a-space direction="vertical" fill>
             <a-button @click="openFilePicker">选择文件</a-button>
             <span class="sub-text">{{ selectedFile?.name || '支持任意文件，单个文件不超过 50MB' }}</span>
@@ -88,16 +97,16 @@
     </a-modal>
 
     <a-modal
-      v-model:visible="shareVisible"
-      title="生成外链"
-      :ok-loading="sharing"
-      :ok-text="shareResultUrl ? '重新生成' : '生成外链'"
-      :on-before-ok="handleBeforeCreateShareLink"
-      @cancel="resetShareState"
+        v-model:visible="shareVisible"
+        title="生成外链"
+        :ok-loading="sharing"
+        :ok-text="shareResultUrl ? '重新生成' : '生成外链'"
+        :on-before-ok="handleBeforeCreateShareLink"
+        @cancel="resetShareState"
     >
       <a-form :model="shareForm" layout="vertical">
         <a-form-item label="文件">
-          <a-input :model-value="shareTarget?.fileName || '-'" readonly />
+          <a-input :model-value="shareTarget?.fileName || '-'" readonly/>
         </a-form-item>
         <a-form-item label="链接类型">
           <a-radio-group v-model="shareForm.permanent">
@@ -106,10 +115,10 @@
           </a-radio-group>
         </a-form-item>
         <a-form-item v-if="!shareForm.permanent" label="有效天数">
-          <a-input-number v-model="shareForm.expireDays" :min="1" :max="3650" style="width: 180px" />
+          <a-input-number v-model="shareForm.expireDays" :min="1" :max="3650" style="width: 180px"/>
         </a-form-item>
         <a-form-item label="外链地址">
-          <a-textarea :model-value="shareResultUrl" readonly :auto-size="{ minRows: 3, maxRows: 5 }" />
+          <a-textarea :model-value="shareResultUrl" readonly :auto-size="{ minRows: 3, maxRows: 5 }"/>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -117,8 +126,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { Message } from '@arco-design/web-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {Message} from '@arco-design/web-vue'
 import {
   createFileShareLink,
   deleteCenterFile,
@@ -126,9 +135,11 @@ import {
   uploadCenterFile,
   type FileRecordItem
 } from '@/api/fileCenter'
-import { useAuthStore } from '@/stores/auth'
+import {useAuthStore} from '@/stores/auth'
+import {useDictStore} from '@/stores/dict'
 
 const authStore = useAuthStore()
+const dictStore = useDictStore()
 const loading = ref(false)
 const uploading = ref(false)
 const uploadVisible = ref(false)
@@ -157,19 +168,20 @@ const shareForm = reactive({
 })
 
 const shareResultUrl = computed(() => shareResult.value)
+const fileBizTypeOptions = computed(() => dictStore.getDictItems('sys_file_biz_type'))
 
 const columns = [
-  { title: 'ID', dataIndex: 'id', width: 80 },
-  { title: '业务类型', dataIndex: 'bizType', width: 140 },
-  { title: '文件名', dataIndex: 'fileName', ellipsis: true, tooltip: true },
-  { title: '存储名', dataIndex: 'storageName', ellipsis: true, tooltip: true },
-  { title: '文件类型', dataIndex: 'contentType', width: 180, ellipsis: true, tooltip: true },
-  { title: '文件大小', slotName: 'fileSize', width: 110 },
-  { title: '上传人', dataIndex: 'operator', width: 120 },
-  { title: '备注', dataIndex: 'remark', ellipsis: true, tooltip: true },
-  { title: '文件路径', dataIndex: 'filePath', ellipsis: true, tooltip: true },
-  { title: '上传时间', slotName: 'createTime', width: 180 },
-  { title: '操作', slotName: 'operations', width: 140 }
+  {title: 'ID', dataIndex: 'id', width: 80, align: 'center'},
+  {title: '业务类型', slotName: 'bizType', width: 140, align: 'center'},
+  {title: '文件名', dataIndex: 'fileName', ellipsis: true, tooltip: true, align: 'center'},
+  {title: '存储名', dataIndex: 'storageName', ellipsis: true, tooltip: true, align: 'center'},
+  {title: '文件类型', dataIndex: 'contentType', width: 180, ellipsis: true, tooltip: true, align: 'center'},
+  {title: '文件大小', slotName: 'fileSize', width: 110, align: 'center'},
+  {title: '上传人', dataIndex: 'operator', width: 120, align: 'center'},
+  {title: '备注', dataIndex: 'remark', ellipsis: true, tooltip: true, align: 'center'},
+  {title: '文件路径', dataIndex: 'filePath', ellipsis: true, tooltip: true, align: 'center'},
+  {title: '上传时间', slotName: 'createTime', width: 180, align: 'center'},
+  {title: '操作', slotName: 'operations', align: 'center'}
 ]
 
 const resolveDownloadUrl = (downloadUrl?: string) => {
@@ -206,7 +218,7 @@ const loadData = async () => {
     const page = await getFileRecords({
       keyword: keyword.value.trim() || undefined,
       operator: operatorKeyword.value.trim() || undefined,
-      bizType: bizTypeKeyword.value.trim() || undefined,
+      bizType: bizTypeKeyword.value || undefined,
       pageNum: currentPage.value,
       pageSize: pageSize.value
     })
@@ -249,7 +261,7 @@ const openUploadModal = () => {
 }
 
 const resetUploadState = () => {
-  uploadForm.bizType = 'COMMON'
+  uploadForm.bizType = fileBizTypeOptions.value[0]?.value || 'COMMON'
   uploadForm.remark = ''
   selectedFile.value = null
   if (fileInputRef.value) {
@@ -282,7 +294,7 @@ const handleUpload = async () => {
   try {
     const record = await uploadCenterFile({
       file: selectedFile.value,
-      bizType: uploadForm.bizType.trim() || 'COMMON',
+      bizType: uploadForm.bizType || 'COMMON',
       remark: uploadForm.remark.trim() || undefined
     })
     Message.success(`上传成功，文件记录 ID：${record.id}`)
@@ -349,8 +361,12 @@ const handleDelete = async (id: number) => {
   await loadData()
 }
 
-onMounted(() => {
-  loadData()
+onMounted(async () => {
+  await dictStore.loadDictionaries()
+  if (!uploadForm.bizType && fileBizTypeOptions.value.length > 0) {
+    uploadForm.bizType = fileBizTypeOptions.value[0].value
+  }
+  await loadData()
 })
 </script>
 
@@ -364,7 +380,7 @@ onMounted(() => {
 }
 
 .sub-text {
-  color: var(--app-muted-text, #86909c);
+  color: var(--color-text-3);
   font-size: 12px;
 }
 

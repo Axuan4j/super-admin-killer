@@ -15,6 +15,7 @@ public class FileRecordResponse {
     private String contentType;
     private String fileExt;
     private Long fileSize;
+    private String fileHash;
     private String operator;
     private String remark;
     private LocalDateTime createTime;

@@ -9,19 +9,16 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("sys_file_record")
-public class SysFileRecord implements Serializable {
+@TableName("blog_category")
+public class BlogCategory implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String bizType;
-    private String fileName;
-    private String storageName;
-    private String filePath;
-    private String contentType;
-    private String fileExt;
-    private Long fileSize;
-    private String fileHash;
-    private String operator;
+    private String categoryName;
+    private String slug;
+    private String description;
+    private String coverImage;
+    private Integer orderNum;
+    private String status;
     private String remark;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
